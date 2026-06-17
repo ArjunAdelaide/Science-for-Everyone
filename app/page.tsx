@@ -52,6 +52,11 @@ export default function Home() {
 
   async function runResearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const submittedQuestion = String(formData.get("question") || form.question).trim();
+    const requestForm = { ...form, question: submittedQuestion };
+
+    setForm(requestForm);
     setLoading(true);
     setError(null);
     clearDeckDownload();
@@ -60,7 +65,7 @@ export default function Home() {
       const response = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify(requestForm)
       });
       const payload = await response.json();
 

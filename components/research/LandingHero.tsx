@@ -104,13 +104,14 @@ export function LandingHero({ error, form, loading, onChange, onSubmit }: Landin
             </label>
             <input
               id="landing-query"
+              name="question"
               className="min-h-16 w-full border-0 bg-transparent px-1 text-center text-lg font-light text-white/85 outline-none placeholder:text-stone-200/55 md:text-xl"
               placeholder={loading ? "Working..." : "Ask anything"}
               value={form.question}
               onChange={(event) => onChange({ ...form, question: event.target.value })}
             />
-            <button className="sr-only" disabled={loading} type="submit">
-              Generate research package
+            <button className="landing-submit" disabled={loading} type="submit" aria-label="Generate research package">
+              <span aria-hidden="true">→</span>
             </button>
             {error ? <p className="mt-4 border border-red-300/40 bg-red-950/70 p-3 text-sm text-red-100">{error}</p> : null}
           </form>

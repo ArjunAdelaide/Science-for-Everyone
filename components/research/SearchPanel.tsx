@@ -29,6 +29,7 @@ export function SearchPanel({ error, form, loading, onChange, onSubmit }: Search
       </label>
       <textarea
         id="question"
+        name="question"
         className="mt-2 min-h-32 w-full border border-stone-300 bg-stone-50 p-3 text-sm leading-6 outline-none focus:border-signal focus:bg-white"
         value={form.question}
         onChange={(event) => onChange({ ...form, question: event.target.value })}

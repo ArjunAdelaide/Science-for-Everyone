@@ -210,9 +210,12 @@ npm test
 
 ## Screenshots
 
-Suggested screenshots for the portfolio/GitHub README:
+### Landing Experience
 
-- Minimal landing page with formula intro
+![EzResearch landing page](docs/screenshots/landing.png)
+
+Planned additions after the next product pass:
+
 - Search and scope panel
 - Ranked papers with score breakdown
 - Deck preview cards
@@ -242,6 +245,9 @@ EzResearch turns a topic into an auditable research package: source retrieval, f
 
 ## Future Improvements
 
+- sharpen the results workspace into a more executive, report-first experience
+- redesign generated reports and decks around answer-first consulting narratives
+- add more README screenshots once the output page is polished
 - Semantic Scholar, Crossref, Europe PMC, and Unpaywall connectors
 - PDF/full-text parsing with section-aware extraction
 - BibTeX/RIS export
