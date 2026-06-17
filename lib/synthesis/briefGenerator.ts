@@ -1,0 +1,111 @@
+import type { EvidenceClaim, Paper, ResearchRequest, SearchMethodology } from "@/lib/types/paper";
+
+function cite(paper: Paper): string {
+  const leadAuthor = paper.authors[0]?.split(" ").pop() || "Unknown";
+  return `${leadAuthor} et al., ${paper.year || "n.d."}`;
+}
+
+function referenceLine(paper: Paper): string {
+  const authors = paper.authors.length > 0 ? paper.authors.slice(0, 6).join(", ") : "Authors not available";
+  const doi = paper.doi ? ` DOI: ${paper.doi}.` : " DOI not available.";
+  const journal = paper.journal || "Source not available";
+
+  return `- ${authors}. (${paper.year || "n.d."}). ${paper.title}. ${journal}.${doi} Source: ${paper.source}.`;
+}
+
+export function buildEvidenceTable(papers: Paper[]): EvidenceClaim[] {
+  const top = papers.slice(0, 6);
+
+  return top.slice(0, 3).map((paper) => ({
+    claim: paper.keyFinding || paper.title,
+    supportingPaperIds: [paper.id],
+    confidence: paper.score && paper.score.finalScore >= 75 ? "High" : paper.score && paper.score.finalScore >= 55 ? "Moderate" : "Low",
+    explanation: `Claim is extracted from the abstract/metadata of ${cite(paper)} and has not been validated against full text.`,
+    limitations: "Confidence reflects metadata and abstract signals only; full-text methods and results may change interpretation."
+  }));
+}
+
+export function generateBriefMarkdown(
+  request: ResearchRequest,
+  methodology: SearchMethodology,
+  papers: Paper[],
+  evidenceTable: EvidenceClaim[]
+): string {
+  const paperLines = papers
+    .slice(0, request.maxPapers)
+    .map(
+      (paper, index) =>
+        `${index + 1}. **${paper.title}** (${paper.year || "n.d."}, ${paper.journal || "unknown source"}) - score ${
+          paper.score?.finalScore ?? "n/a"
+        }/100. ${paper.reasonIncluded || ""}`
+    )
+    .join("\n");
+
+  const findingLines = evidenceTable
+    .map((claim) => {
+      const supports = claim.supportingPaperIds
+        .map((id) => papers.find((paper) => paper.id === id))
+        .filter((paper): paper is Paper => Boolean(paper))
+        .map(cite)
+        .join("; ");
+
+      return `- **${claim.claim}** Supported by ${supports}. Confidence: ${claim.confidence}. ${claim.limitations}`;
+    })
+    .join("\n");
+
+  const evidenceLines = evidenceTable
+    .map(
+      (claim) =>
+        `| ${claim.claim.replace(/\|/g, "/")} | ${claim.supportingPaperIds
+          .map((id) => papers.find((paper) => paper.id === id)?.title || id)
+          .join("; ")
+          .replace(/\|/g, "/")} | ${claim.confidence} | ${claim.explanation.replace(/\|/g, "/")} | ${claim.limitations.replace(
+          /\|/g,
+          "/"
+        )} |`
+    )
+    .join("\n");
+
+  return `# EzResearch Research Brief: ${request.question}
+
+## Research Topic
+${request.question}
+
+## Executive Summary
+This brief compresses retrieved scholarly metadata and abstracts into an evidence-grounded starting point for research review. It prioritises likely scholarly journal literature, ranks papers with transparent signals, and keeps citations tied to retrieved records.
+
+## Search Methodology
+- Sources searched: ${methodology.sources.join(", ")}
+- Generated queries: ${methodology.generatedQueries.join("; ")}
+- Date range: ${methodology.dateRange.startYear}-${methodology.dateRange.endYear}
+- Preprints: ${methodology.includePreprints ? "included when retrieved" : "excluded when metadata suggests preprint/repository source"}
+- Analysis depth: ${methodology.analysisDepth}. Full text, figures, supplementary data, and PDFs are outside the current MVP.
+- Peer-review language: records are described as likely peer-reviewed only when source and publication metadata support that inference.
+
+## Papers Analysed
+${paperLines || "No papers were available after filtering."}
+
+## Abstract-Derived Claims
+${findingLines || "No evidence claims were generated."}
+
+## Evidence Table
+| Claim | Supporting papers | Confidence | Explanation | Limitations |
+|---|---|---|---|---|
+${evidenceLines || "| No claim | No supporting papers | Low | No papers passed filters | Try a broader query |"}
+
+## Areas of Agreement
+The strongest signals are papers with direct topical overlap, recent publication dates, stronger publication-type metadata, and available citation counts.
+
+## Areas of Uncertainty or Disagreement
+This MVP does not resolve conflicting results across full methods, populations, interventions, or outcome measures. Treat abstract-only claims as directional until a full-text review is completed.
+
+## Limitations of the Analysis
+- Abstract-only analysis can miss methods, caveats, negative results, and subgroup findings from full text.
+- Peer-review status is inferred from metadata and should be verified for high-stakes use.
+- Citation counts are available mainly through OpenAlex and may lag recent publications.
+- Claims are not generated beyond retrieved paper metadata and abstracts.
+
+## References
+${papers.map(referenceLine).join("\n")}
+`;
+}

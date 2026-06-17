@@ -1,0 +1,296 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f7f5ef;
+  color: #111827;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
+}
+
+::selection {
+  background: rgba(15, 118, 110, 0.18);
+}
+
+.landing-slide {
+  animation: landingFade 21s infinite;
+  opacity: 0;
+  transform: scale(1.03);
+}
+
+.landing-search-shell {
+  animation: searchReveal 1.2s ease 0.65s both;
+  position: relative;
+}
+
+.landing-search-shell::before,
+.landing-search-shell::after {
+  bottom: 0;
+  content: "";
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transform-origin: center;
+}
+
+.landing-search-shell::before {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.landing-search-shell::after {
+  animation: searchLine 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.landing-statement {
+  animation: searchReveal 1.2s ease 0.45s both;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.landing-statement p {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(28px, 4vw, 54px);
+  font-weight: 300;
+  letter-spacing: 0;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.landing-statement span {
+  color: rgba(231, 229, 228, 0.7);
+  display: block;
+  font-size: clamp(15px, 1.5vw, 20px);
+  font-weight: 300;
+  margin-top: 12px;
+}
+
+.science-opener {
+  animation: openerExit 3.4s cubic-bezier(0.76, 0, 0.24, 1) both;
+  overflow: hidden;
+}
+
+.science-opener::before {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(15, 23, 42, 0.035), transparent 1px),
+    radial-gradient(circle at 74% 62%, rgba(15, 23, 42, 0.025), transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.015) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(15, 23, 42, 0.012) 1px, transparent 1px);
+  background-size:
+    17px 17px,
+    23px 23px,
+    68px 68px,
+    68px 68px;
+  content: "";
+  inset: 0;
+  opacity: 0.42;
+  position: absolute;
+}
+
+.pen-opener {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.98), rgba(250, 249, 246, 0.96) 48%, rgba(235, 232, 224, 0.92)),
+    #faf9f6;
+}
+
+.pen-paper {
+  animation: penPaperRush 3.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  inset: 0;
+  position: absolute;
+  transform-origin: center;
+}
+
+.pen-paper::before {
+  background:
+    linear-gradient(100deg, transparent 0 18%, rgba(15, 23, 42, 0.018) 21%, transparent 27% 100%),
+    radial-gradient(circle at 30% 24%, rgba(15, 23, 42, 0.018), transparent 24%),
+    radial-gradient(circle at 68% 70%, rgba(15, 23, 42, 0.014), transparent 22%);
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.pen-formula {
+  animation: penFlash 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  color: rgba(22, 22, 20, 0.78);
+  display: flex;
+  flex-direction: column;
+  font-family: "Bradley Hand", "Noteworthy", "Apple Chancery", "Segoe Print", cursive;
+  line-height: 1;
+  position: absolute;
+  text-shadow:
+    0.35px 0.2px 0 rgba(15, 15, 14, 0.18),
+    -0.25px 0.1px 0 rgba(15, 15, 14, 0.08);
+  white-space: nowrap;
+}
+
+.pen-formula span {
+  letter-spacing: 0;
+}
+
+.pen-large {
+  font-size: clamp(40px, 7.4vw, 108px);
+}
+
+.pen-medium {
+  font-size: clamp(30px, 5.2vw, 76px);
+}
+
+.pen-small {
+  font-size: clamp(22px, 3.6vw, 54px);
+}
+
+.science-opener-flash {
+  animation: openerFlash 3.4s ease both;
+  background: white;
+  inset: 0;
+  opacity: 0;
+  position: absolute;
+}
+
+@keyframes landingFade {
+  0% {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+  8% {
+    opacity: 1;
+  }
+  32% {
+    opacity: 1;
+  }
+  42% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes searchReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes searchLine {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes penFlash {
+  0% {
+    filter: blur(1.8px) contrast(0.92);
+    opacity: 0;
+    transform: translate3d(-6px, 5px, 0) rotate(-0.8deg) scale(0.99);
+  }
+  22% {
+    filter: blur(0.25px) contrast(1);
+    opacity: 0.92;
+  }
+  58% {
+    filter: blur(0.15px) contrast(1.04);
+    opacity: 0.86;
+  }
+  100% {
+    filter: blur(1.6px) contrast(0.95);
+    opacity: 0;
+    transform: translate3d(6px, -3px, 0) rotate(0.4deg) scale(1.01);
+  }
+}
+
+@keyframes penPaperRush {
+  0% {
+    transform: translateX(-3vw) rotate(-0.4deg) scale(1);
+  }
+  72% {
+    transform: translateX(1vw) rotate(0.2deg) scale(1.04);
+  }
+  100% {
+    transform: translateX(4vw) rotate(0.4deg) scale(1.08);
+  }
+}
+
+@keyframes openerFlash {
+  0%,
+  72% {
+    opacity: 0;
+  }
+  82% {
+    opacity: 0.82;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes openerExit {
+  0%,
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@media (max-width: 760px) {
+  .pen-large {
+    font-size: clamp(26px, 9vw, 52px);
+  }
+
+  .pen-medium {
+    font-size: clamp(20px, 7vw, 40px);
+  }
+
+  .pen-small {
+    font-size: clamp(16px, 5vw, 28px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .science-opener {
+    display: none;
+  }
+
+  .landing-slide,
+  .landing-search-shell,
+  .landing-search-shell::after {
+    animation: none;
+    opacity: 1;
+  }
+}
