@@ -60,8 +60,9 @@ app/
   page.tsx                       # client-side workflow shell
 
 components/research/
+  LandingHero.tsx
   SearchPanel.tsx
-  ResultStatus.tsx
+  SourcesColumn.tsx
   RankedPapers.tsx
   DeckPreview.tsx
   EvidenceTable.tsx
@@ -210,13 +211,12 @@ npm test
 Planned additions after the next product pass:
 
 - Premium landing page
-- Search and scope panel
-- Ranked papers with score breakdown
+- Scientist-image landing backdrop
 - Deck preview cards
-- Research brief and evidence table
+- Sources column
 - PowerPoint export opened in Keynote/PowerPoint
 
-The landing page is implemented with CSS and typography rather than third-party imagery, keeping the repo lightweight and easier to publish.
+The landing page uses a lightweight mix of local archival-style assets and web-hosted scientist imagery. Replace web-hosted references with licensed local assets before a commercial launch.
 
 ## Case Study
 

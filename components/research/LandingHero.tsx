@@ -3,16 +3,43 @@
 import type { FormEvent } from "react";
 import type { ResearchFormState } from "@/components/research/types";
 
-const SIGNALS = ["sports", "maths", "music", "medicine", "papers", "proof", "evidence", "strategy"];
-const SCIENTISTS = [
-  "Marie Curie",
-  "Richard Feynman",
-  "Katherine Johnson",
-  "Ada Lovelace",
-  "S. Ramanujan",
-  "Rosalind Franklin",
-  "Alan Turing",
-  "Jane Goodall"
+const SCIENTIST_BACKDROPS = [
+  {
+    name: "Terence Tao",
+    image: "https://www.masterclass.com/course-images/attachments/3udqajqs3z7vvqiqbm54eprttjda?format=webp&quality=75&width=1920",
+    fallbackImage: "/landing/feynman-blackboard.png",
+    position: "center"
+  },
+  {
+    name: "Richard Feynman",
+    image: "/landing/feynman-blackboard.png",
+    position: "center"
+  },
+  {
+    name: "J. Robert Oppenheimer",
+    image:
+      "https://bostonglobe-prod.cdn.arcpublishing.com/resizer/v2/C5YIKFSROMI6JBDZEAFGCUUKVU.jpg?auth=c457b374c4930197c08be278659db1cf39ca96c1e3b0b42080498d8cc967d00e&width=1440",
+    fallbackImage: "/landing/feynman-blackboard.png",
+    position: "center"
+  },
+  {
+    name: "Albert Einstein",
+    image: "https://www.huntington.org/sites/default/files/uploads/2016/03/einsteinwaves-1.jpg",
+    fallbackImage: "/landing/feynman-blackboard.png",
+    position: "center"
+  },
+  {
+    name: "Edward Teller",
+    image:
+      "https://www.blikk.hu/static/image-transforms/1/oF0ktkpTURBXy8xOGRlNTMyZjJlNmJkZGRlMmY1ZjJkNzJmNGQ0ZjhkOC5qcGeRlQMAzKzNC_TNBrk",
+    fallbackImage: "/landing/feynman-blackboard.png",
+    position: "center"
+  },
+  {
+    name: "Marie Curie",
+    image: "/landing/marie-curie-lab.jpg",
+    position: "center"
+  }
 ];
 
 type LandingHeroProps = {
@@ -28,26 +55,26 @@ export function LandingHero({ error, form, loading, onChange, onSubmit }: Landin
     <main className="landing-root relative min-h-screen overflow-hidden text-ivory">
       <div aria-hidden="true" className="landing-atmosphere">
         <div className="landing-field" />
-        <div className="landing-scientists">
-          {SCIENTISTS.map((scientist) => (
-            <span key={scientist}>{scientist}</span>
+        <div className="landing-portrait-stage">
+          {SCIENTIST_BACKDROPS.map((scientist, index) => (
+            <div
+              className="landing-scientist-slide"
+              key={scientist.name}
+              style={{
+                animationDelay: `${index * 4.6}s`,
+                backgroundImage: scientist.fallbackImage
+                  ? `url("${scientist.image}"), url("${scientist.fallbackImage}")`
+                  : `url("${scientist.image}")`,
+                backgroundPosition: scientist.position
+              }}
+            />
           ))}
-        </div>
-        <div className="landing-ledger">
-          <span>evidence → claim → citation</span>
-          <span>ranked papers / source metadata / deck output</span>
-          <span>abstract-only analysis / transparent limits</span>
         </div>
         <div className="landing-noise" />
       </div>
 
       <header className="landing-nav">
         <span>Science for Everyone</span>
-        <nav aria-label="Landing navigation">
-          <a href="#search">Search</a>
-          <a href="#method">Evidence</a>
-          <a href="#deck">Decks</a>
-        </nav>
       </header>
 
       <section className="relative z-10 flex min-h-screen items-center px-5">
@@ -61,13 +88,6 @@ export function LandingHero({ error, form, loading, onChange, onSubmit }: Landin
           </div>
 
           <div className="landing-console" id="search">
-            <p className="landing-console-title">Ask a topic, keyword, or question.</p>
-            <div className="landing-signal-row" aria-hidden="true">
-              {SIGNALS.map((signal) => (
-                <span key={signal}>{signal}</span>
-              ))}
-            </div>
-
             <form onSubmit={onSubmit} className="landing-search-shell">
               <label className="sr-only" htmlFor="landing-query">
                 Research topic, keyword, or question
@@ -84,13 +104,6 @@ export function LandingHero({ error, form, loading, onChange, onSubmit }: Landin
                 <span aria-hidden="true">→</span>
               </button>
             </form>
-
-            <div className="landing-proof-strip" id="method">
-              <span>PubMed</span>
-              <span>OpenAlex</span>
-              <span>Ranked evidence</span>
-              <span id="deck">Deck-ready output</span>
-            </div>
 
             {error ? <p className="mt-5 border border-red-300/30 bg-red-950/40 p-3 text-sm text-red-100">{error}</p> : null}
           </div>

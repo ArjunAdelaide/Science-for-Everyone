@@ -35,8 +35,8 @@ textarea {
 
 .landing-root {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 28%),
-    linear-gradient(135deg, #050505 0%, #080908 46%, #11100d 100%);
+    radial-gradient(circle at 20% 18%, rgba(244, 239, 227, 0.08), transparent 28%),
+    linear-gradient(135deg, #050505 0%, #080908 48%, #10100d 100%);
 }
 
 .landing-atmosphere {
@@ -53,51 +53,47 @@ textarea {
     96px 96px;
   inset: 0;
   mask-image: linear-gradient(90deg, transparent, black 16%, black 78%, transparent);
-  opacity: 0.2;
+  opacity: 0.11;
   position: absolute;
+  z-index: 2;
 }
 
 .landing-field::before {
   background:
-    linear-gradient(90deg, transparent, rgba(244, 239, 227, 0.08), transparent),
-    linear-gradient(180deg, transparent 0%, rgba(244, 239, 227, 0.045) 58%, transparent 100%);
+    linear-gradient(90deg, transparent, rgba(244, 239, 227, 0.06), transparent),
+    linear-gradient(180deg, transparent 0%, rgba(244, 239, 227, 0.035) 58%, transparent 100%);
   content: "";
   inset: 12% 8%;
   position: absolute;
 }
 
-.landing-ledger {
-  bottom: 34px;
-  color: rgba(244, 239, 227, 0.26);
-  display: grid;
-  font-size: 12px;
-  gap: 10px;
-  left: 32px;
-  letter-spacing: 0;
+.landing-portrait-stage {
+  inset: -3%;
+  overflow: hidden;
   position: absolute;
-  text-transform: uppercase;
+  z-index: 1;
 }
 
-.landing-scientists {
-  display: grid;
-  gap: 18px;
-  grid-template-columns: repeat(2, minmax(140px, 1fr));
-  opacity: 0.18;
+.landing-portrait-stage::after {
+  background:
+    linear-gradient(90deg, rgba(5, 5, 5, 0.92) 0%, rgba(5, 5, 5, 0.58) 38%, rgba(5, 5, 5, 0.24) 72%, rgba(5, 5, 5, 0.72) 100%),
+    linear-gradient(180deg, rgba(5, 5, 5, 0.62) 0%, transparent 34%, rgba(5, 5, 5, 0.86) 100%);
+  content: "";
+  inset: 0;
   position: absolute;
-  right: 6vw;
-  top: 16vh;
-  transform: rotate(-4deg);
-  width: min(42vw, 560px);
+  z-index: 2;
 }
 
-.landing-scientists span {
-  border-top: 1px solid rgba(244, 239, 227, 0.18);
-  color: rgba(244, 239, 227, 0.82);
-  font-size: clamp(20px, 3vw, 44px);
-  font-weight: 500;
-  letter-spacing: 0;
-  line-height: 0.95;
-  padding-top: 12px;
+.landing-scientist-slide {
+  animation: scientistFade 27.6s linear infinite;
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: grayscale(0.82) contrast(1.08) saturate(0.64);
+  inset: 0;
+  opacity: 0;
+  position: absolute;
+  transform: scale(1.03);
+  z-index: 1;
 }
 
 .landing-noise {
@@ -105,9 +101,10 @@ textarea {
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 5px),
     linear-gradient(90deg, transparent, rgba(244, 239, 227, 0.04), transparent);
   inset: 0;
-  opacity: 0.14;
+  opacity: 0.12;
   pointer-events: none;
   position: absolute;
+  z-index: 3;
 }
 
 .landing-nav {
@@ -128,21 +125,6 @@ textarea {
 .landing-nav span {
   color: rgba(244, 239, 227, 0.88);
   font-weight: 600;
-}
-
-.landing-nav nav {
-  display: flex;
-  gap: 26px;
-}
-
-.landing-nav a {
-  color: rgba(244, 239, 227, 0.58);
-  text-decoration: none;
-  transition: color 180ms ease;
-}
-
-.landing-nav a:hover {
-  color: rgba(244, 239, 227, 0.92);
 }
 
 .landing-eyebrow {
@@ -171,44 +153,21 @@ textarea {
 }
 
 .landing-console {
-  background: rgba(5, 5, 5, 0.18);
-  border-top: 1px solid rgba(244, 239, 227, 0.18);
+  background: rgba(5, 5, 5, 0.08);
   position: relative;
   z-index: 2;
-  padding-top: 22px;
-}
-
-.landing-console-title {
-  color: rgba(244, 239, 227, 0.52);
-  font-size: 15px;
-  letter-spacing: 0;
-  margin: 0 0 22px;
-}
-
-.landing-signal-row {
-  color: rgba(244, 239, 227, 0.36);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 12px;
-  gap: 12px 18px;
-  letter-spacing: 0;
-  margin-bottom: 18px;
-  text-transform: uppercase;
-}
-
-.landing-signal-row span {
-  border-bottom: 1px solid rgba(244, 239, 227, 0.16);
-  padding-bottom: 6px;
+  padding-top: 0;
 }
 
 .landing-search-shell {
   animation: searchReveal 900ms ease 220ms both;
-  border-bottom: 1px solid rgba(244, 239, 227, 0.22);
+  backdrop-filter: blur(4px);
+  border-bottom: 1px solid rgba(244, 239, 227, 0.16);
   position: relative;
 }
 
 .landing-search-shell::after {
-  background: rgba(244, 239, 227, 0.86);
+  background: rgba(244, 239, 227, 0.68);
   bottom: -1px;
   content: "";
   height: 1px;
@@ -229,7 +188,7 @@ textarea {
   background: transparent;
   border: 0;
   bottom: 13px;
-  color: rgba(244, 239, 227, 0.58);
+  color: rgba(244, 239, 227, 0.5);
   display: flex;
   font-size: 26px;
   height: 40px;
@@ -253,22 +212,6 @@ textarea {
   opacity: 0.45;
 }
 
-.landing-proof-strip {
-  color: rgba(244, 239, 227, 0.38);
-  display: grid;
-  font-size: 13px;
-  gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  letter-spacing: 0;
-  margin-top: 24px;
-}
-
-.landing-proof-strip span {
-  border-left: 1px solid rgba(244, 239, 227, 0.16);
-  min-height: 42px;
-  padding-left: 12px;
-}
-
 @keyframes searchReveal {
   0% {
     opacity: 0;
@@ -280,13 +223,27 @@ textarea {
   }
 }
 
+@keyframes scientistFade {
+  0% {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  3% {
+    opacity: 0.62;
+  }
+  14% {
+    opacity: 0.62;
+  }
+  18%,
+  100% {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+
 @media (max-width: 960px) {
   .landing-title {
     font-size: 64px;
-  }
-
-  .landing-proof-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -295,20 +252,14 @@ textarea {
     padding: 22px 20px;
   }
 
-  .landing-nav nav {
-    display: none;
+  .landing-portrait-stage::after {
+    background:
+      linear-gradient(90deg, rgba(5, 5, 5, 0.9) 0%, rgba(5, 5, 5, 0.48) 62%, rgba(5, 5, 5, 0.78) 100%),
+      linear-gradient(180deg, rgba(5, 5, 5, 0.68) 0%, transparent 30%, rgba(5, 5, 5, 0.9) 100%);
   }
 
-  .landing-ledger {
-    display: none;
-  }
-
-  .landing-scientists {
-    grid-template-columns: 1fr;
-    opacity: 0.1;
-    right: -20vw;
-    top: 12vh;
-    width: 70vw;
+  .landing-scientist-slide {
+    background-position: center;
   }
 
   .landing-title {
@@ -318,10 +269,6 @@ textarea {
   .landing-console {
     padding-top: 18px;
   }
-
-  .landing-proof-strip {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -329,8 +276,15 @@ textarea {
     animation: none;
   }
 
+  .landing-scientist-slide {
+    animation: none;
+  }
+
+  .landing-scientist-slide:first-child {
+    opacity: 0.58;
+  }
+
   .landing-submit,
-  .landing-nav a,
   .landing-search-shell::after {
     transition: none;
   }
