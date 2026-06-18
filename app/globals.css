@@ -46,13 +46,13 @@ textarea {
 
 .landing-paper-field {
   background:
-    radial-gradient(circle at 22% 42%, rgba(250, 248, 241, 0.12), transparent 26%),
-    linear-gradient(90deg, rgba(250, 248, 241, 0.8) 0%, rgba(250, 248, 241, 0.62) 42%, rgba(250, 248, 241, 0.32) 64%, rgba(250, 248, 241, 0.08) 100%),
-    linear-gradient(180deg, rgba(250, 248, 241, 0.06), rgba(250, 248, 241, 0.01) 54%, rgba(250, 248, 241, 0.12));
+    radial-gradient(circle at 22% 42%, rgba(250, 248, 241, 0.1), transparent 24%),
+    linear-gradient(90deg, rgba(250, 248, 241, 0.96) 0%, rgba(250, 248, 241, 0.92) 42%, rgba(250, 248, 241, 0.52) 68%, rgba(250, 248, 241, 0.16) 100%),
+    linear-gradient(180deg, rgba(250, 248, 241, 0.1), rgba(250, 248, 241, 0.02) 54%, rgba(250, 248, 241, 0.16));
   inset: 0;
   pointer-events: none;
   position: absolute;
-  z-index: 2;
+  z-index: 3;
 }
 
 .landing-paper-field::before {
@@ -65,44 +65,103 @@ textarea {
   position: absolute;
 }
 
-.landing-photo-stage {
-  inset: 0;
+.landing-archive-wall {
+  bottom: clamp(18px, 3vw, 42px);
+  display: grid;
+  gap: clamp(8px, 1.1vw, 16px);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: repeat(8, minmax(0, 1fr));
+  left: clamp(190px, 23vw, 330px);
   overflow: hidden;
   position: absolute;
+  right: clamp(18px, 3vw, 42px);
+  top: clamp(18px, 3vw, 42px);
+  transform: rotate(-1.2deg) scale(1.04);
+  transform-origin: center;
   z-index: 1;
 }
 
-.landing-photo-stage::after {
+.landing-archive-wall::after {
   background:
-    linear-gradient(90deg, rgba(21, 20, 18, 0.04), transparent 28%, rgba(21, 20, 18, 0.12)),
-    linear-gradient(180deg, rgba(250, 248, 241, 0.02), transparent 38%, rgba(21, 20, 18, 0.08));
+    linear-gradient(90deg, rgba(250, 248, 241, 0.32), transparent 32%, transparent 74%, rgba(24, 23, 21, 0.14)),
+    linear-gradient(180deg, rgba(250, 248, 241, 0.1), transparent 46%, rgba(24, 23, 21, 0.12));
+  content: "";
+  inset: -6%;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+.landing-archive-tile {
+  animation: archiveReveal 900ms ease both;
+  background-color: rgba(42, 40, 36, 0.16);
+  background-repeat: no-repeat;
+  background-size: cover;
+  border: 1px solid rgba(250, 248, 241, 0.32);
+  filter: grayscale(0.22) contrast(1.12) saturate(0.96);
+  min-height: 0;
+  opacity: 0.9;
+  position: relative;
+}
+
+.landing-archive-tile::after {
+  background:
+    linear-gradient(180deg, rgba(250, 248, 241, 0.02), transparent 44%, rgba(21, 20, 18, 0.12)),
+    repeating-linear-gradient(0deg, rgba(250, 248, 241, 0.035) 0 1px, transparent 1px 6px);
   content: "";
   inset: 0;
   pointer-events: none;
   position: absolute;
-  z-index: 2;
 }
 
-.landing-photo-slide {
-  animation: scientistFade 27.6s linear infinite;
-  background-repeat: no-repeat;
-  background-size: cover;
-  filter: grayscale(0.18) contrast(1.16) saturate(1);
-  inset: 0;
-  opacity: 0;
-  position: absolute;
-  transform: scale(1.02);
-  z-index: 1;
+.archive-tile-large {
+  grid-column: 5 / 10;
+  grid-row: 1 / 5;
+}
+
+.archive-tile-portrait {
+  grid-column: 9 / 13;
+  grid-row: 1 / 4;
+}
+
+.archive-tile-tall {
+  grid-column: 10 / 13;
+  grid-row: 4 / 9;
+}
+
+.archive-tile-wide {
+  grid-column: 5 / 10;
+  grid-row: 5 / 8;
+}
+
+.archive-tile-small-a {
+  grid-column: 3 / 5;
+  grid-row: 2 / 5;
+}
+
+.archive-tile-small-b {
+  grid-column: 2 / 5;
+  grid-row: 5 / 8;
+}
+
+.archive-tile-strip {
+  grid-column: 6 / 10;
+  grid-row: 8 / 9;
+}
+
+.archive-tile-small-c {
+  grid-column: 1 / 3;
+  grid-row: 1 / 4;
 }
 
 .landing-title {
   color: #30302f;
-  font-size: clamp(44px, 5.7vw, 82px);
+  font-size: clamp(42px, 4.85vw, 72px);
   font-weight: 400;
   letter-spacing: 0;
   line-height: 1.12;
   margin: 0;
-  max-width: 940px;
+  max-width: 660px;
   position: relative;
   z-index: 2;
 }
@@ -112,15 +171,14 @@ textarea {
 }
 
 .landing-console {
-  margin-top: clamp(24px, 4.8vh, 54px);
+  margin-top: clamp(18px, 3.6vh, 42px);
   position: relative;
   z-index: 2;
-  width: min(100%, 620px);
+  width: min(100%, 520px);
 }
 
 .landing-search-shell {
-  animation: searchReveal 900ms ease 220ms both;
-  border-bottom: 1px solid rgba(48, 48, 47, 0.2);
+  border-bottom: 1px solid rgba(48, 48, 47, 0.52);
   position: relative;
 }
 
@@ -155,7 +213,7 @@ textarea {
 }
 
 .landing-query-input::placeholder {
-  color: rgba(48, 48, 47, 0.42);
+  color: rgba(48, 48, 47, 0.72);
 }
 
 .landing-submit {
@@ -163,7 +221,7 @@ textarea {
   background: transparent;
   border: 0;
   bottom: 11px;
-  color: rgba(48, 48, 47, 0.46);
+  color: rgba(48, 48, 47, 0.68);
   display: flex;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 25px;
@@ -199,43 +257,45 @@ textarea {
   }
 }
 
-@keyframes scientistFade {
+@keyframes archiveReveal {
   0% {
     opacity: 0;
-    transform: scale(1.02);
+    transform: translateY(10px);
   }
-  4% {
-    opacity: 1;
-  }
-  15% {
-    opacity: 1;
-  }
-  20%,
   100% {
-    opacity: 0;
-    transform: scale(1.07);
+    opacity: 0.9;
+    transform: translateY(0);
   }
 }
 
 @media (max-width: 960px) {
   .landing-title {
-    font-size: 44px;
-    max-width: 760px;
+    font-size: 38px;
+    max-width: 520px;
   }
 
   .landing-paper-field {
     background:
       radial-gradient(circle at 22% 40%, rgba(250, 248, 241, 0.18), transparent 30%),
-      linear-gradient(90deg, rgba(250, 248, 241, 0.8) 0%, rgba(250, 248, 241, 0.6) 56%, rgba(250, 248, 241, 0.26) 100%),
+      linear-gradient(90deg, rgba(250, 248, 241, 0.88) 0%, rgba(250, 248, 241, 0.68) 56%, rgba(250, 248, 241, 0.28) 100%),
       linear-gradient(180deg, rgba(250, 248, 241, 0.12), rgba(250, 248, 241, 0.02) 56%, rgba(250, 248, 241, 0.2));
+  }
+
+  .landing-archive-wall {
+    bottom: 18px;
+    gap: 8px;
+    left: 36vw;
+    right: 18px;
+    top: 18px;
+    transform: rotate(-1deg) scale(1.08);
   }
 }
 
 @media (max-width: 680px) {
   .landing-paper-field {
     background:
-      linear-gradient(90deg, rgba(250, 248, 241, 0.76), rgba(250, 248, 241, 0.38)),
-      linear-gradient(180deg, rgba(250, 248, 241, 0.24), rgba(250, 248, 241, 0.04) 50%, rgba(250, 248, 241, 0.32));
+      linear-gradient(90deg, rgba(250, 248, 241, 0.86), rgba(250, 248, 241, 0.48)),
+      linear-gradient(180deg, rgba(250, 248, 241, 0.3), rgba(250, 248, 241, 0.06) 50%, rgba(250, 248, 241, 0.42));
   }
 
   .landing-title {
@@ -245,6 +305,41 @@ textarea {
   .landing-console {
     margin-top: 28px;
   }
+
+  .landing-archive-wall {
+    gap: 6px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: repeat(8, minmax(0, 1fr));
+    inset: 12px;
+    transform: rotate(-1deg) scale(1.08);
+  }
+
+  .archive-tile-large {
+    grid-column: 2 / 7;
+    grid-row: 1 / 4;
+  }
+
+  .archive-tile-portrait {
+    grid-column: 4 / 7;
+    grid-row: 4 / 7;
+  }
+
+  .archive-tile-tall {
+    grid-column: 1 / 4;
+    grid-row: 5 / 9;
+  }
+
+  .archive-tile-wide {
+    grid-column: 1 / 5;
+    grid-row: 3 / 5;
+  }
+
+  .archive-tile-small-a,
+  .archive-tile-small-b,
+  .archive-tile-strip,
+  .archive-tile-small-c {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -252,12 +347,8 @@ textarea {
     animation: none;
   }
 
-  .landing-photo-slide {
+  .landing-archive-tile {
     animation: none;
-  }
-
-  .landing-photo-slide:first-child {
-    opacity: 0.82;
   }
 
   .landing-submit,

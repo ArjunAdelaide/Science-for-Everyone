@@ -1,9 +1,9 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import type { ResearchFormState } from "@/components/research/types";
 
-const SCIENTIST_BACKDROPS = [
+const ARCHIVE_IMAGES = [
   {
     name: "Terence Tao",
     image: "https://www.masterclass.com/course-images/attachments/3udqajqs3z7vvqiqbm54eprttjda?format=webp&quality=75&width=1920",
@@ -38,6 +38,17 @@ const SCIENTIST_BACKDROPS = [
   }
 ];
 
+const ARCHIVE_TILES = [
+  { imageIndex: 1, className: "archive-tile-large", delay: "0ms" },
+  { imageIndex: 0, className: "archive-tile-portrait", delay: "120ms" },
+  { imageIndex: 5, className: "archive-tile-tall", delay: "240ms" },
+  { imageIndex: 3, className: "archive-tile-wide", delay: "360ms" },
+  { imageIndex: 2, className: "archive-tile-small-a", delay: "480ms" },
+  { imageIndex: 4, className: "archive-tile-small-b", delay: "600ms" },
+  { imageIndex: 1, className: "archive-tile-strip", delay: "720ms" },
+  { imageIndex: 5, className: "archive-tile-small-c", delay: "840ms" }
+];
+
 type LandingHeroProps = {
   error: string | null;
   form: ResearchFormState;
@@ -46,24 +57,30 @@ type LandingHeroProps = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
+function getArchiveTileStyle(tile: (typeof ARCHIVE_TILES)[number]): CSSProperties {
+  const image = ARCHIVE_IMAGES[tile.imageIndex];
+
+  return {
+    animationDelay: tile.delay,
+    backgroundImage: `url("${image.image}")`,
+    backgroundPosition: image.position
+  };
+}
+
 export function LandingHero({ error, form, loading, onChange, onSubmit }: LandingHeroProps) {
   return (
     <main className="landing-root relative min-h-screen overflow-hidden">
       <div aria-hidden="true" className="landing-atmosphere">
-        <div className="landing-paper-field" />
-        <div className="landing-photo-stage">
-          {SCIENTIST_BACKDROPS.map((scientist, index) => (
+        <div className="landing-archive-wall">
+          {ARCHIVE_TILES.map((tile) => (
             <div
-              className="landing-photo-slide"
-              key={scientist.name}
-              style={{
-                animationDelay: `${index * 4.6}s`,
-                backgroundImage: `url("${scientist.image}")`,
-                backgroundPosition: scientist.position
-              }}
+              className={`landing-archive-tile ${tile.className}`}
+              key={`${tile.className}-${tile.imageIndex}`}
+              style={getArchiveTileStyle(tile)}
             />
           ))}
         </div>
+        <div className="landing-paper-field" />
       </div>
 
       <section className="relative z-10 flex min-h-screen items-center px-5">
