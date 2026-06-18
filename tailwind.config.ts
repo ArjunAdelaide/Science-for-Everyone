@@ -6,6 +6,7 @@ const config: Config = {
     extend: {
       colors: {
         ink: "#111827",
+        ivory: "#f4efe3",
         paper: "#f7f5ef",
         moss: "#465a42",
         signal: "#0f766e",

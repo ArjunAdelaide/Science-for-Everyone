@@ -20,7 +20,7 @@ EzResearch explores a more trustworthy middle ground:
 ## Key Features
 
 - Topic, keyword, or full-question input
-- minimal landing page with a rapid sports, math, and music intelligence opener plus a single search box
+- minimal, premium landing page inspired by frontier research lab websites
 - PubMed / NCBI E-utilities retrieval
 - OpenAlex retrieval with citation counts where available
 - DOI/title deduplication
@@ -210,23 +210,16 @@ npm test
 
 ## Screenshots
 
-### Motion Opener
-
-![EzResearch motion opener](docs/screenshots/motion-opener-preview.png)
-
-### Landing Experience
-
-![EzResearch landing page](docs/screenshots/landing.png)
-
 Planned additions after the next product pass:
 
+- Premium landing page
 - Search and scope panel
 - Ranked papers with score breakdown
 - Deck preview cards
 - Research brief and evidence table
 - PowerPoint export opened in Keynote/PowerPoint
 
-The landing images in `public/landing` are local demo assets. Before using the project in a public commercial context, replace them with owned, generated, or explicitly licensed imagery.
+The landing page is implemented with CSS and typography rather than third-party imagery, keeping the repo lightweight and easier to publish.
 
 ## Case Study
 
