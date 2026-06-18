@@ -76,7 +76,7 @@ textarea {
   position: absolute;
   right: clamp(18px, 3vw, 42px);
   top: clamp(18px, 3vw, 42px);
-  transform: rotate(-1.2deg) scale(1.04);
+  isolation: isolate;
   transform-origin: center;
   z-index: 1;
 }
@@ -95,10 +95,11 @@ textarea {
 .landing-archive-tile {
   animation: archiveReveal 900ms ease both;
   background-color: rgba(42, 40, 36, 0.16);
+  background-blend-mode: luminosity;
   background-repeat: no-repeat;
   background-size: cover;
   border: 1px solid rgba(250, 248, 241, 0.32);
-  filter: grayscale(0.22) contrast(1.12) saturate(0.96);
+  filter: grayscale(1) contrast(1.08) saturate(0);
   min-height: 0;
   opacity: 0.9;
   position: relative;
@@ -115,7 +116,7 @@ textarea {
 }
 
 .archive-tile-large {
-  grid-column: 5 / 10;
+  grid-column: 5 / 9;
   grid-row: 1 / 5;
 }
 
@@ -130,7 +131,7 @@ textarea {
 }
 
 .archive-tile-wide {
-  grid-column: 5 / 10;
+  grid-column: 5 / 9;
   grid-row: 5 / 8;
 }
 
@@ -287,7 +288,6 @@ textarea {
     left: 36vw;
     right: 18px;
     top: 18px;
-    transform: rotate(-1deg) scale(1.08);
   }
 }
 
@@ -311,7 +311,6 @@ textarea {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-rows: repeat(8, minmax(0, 1fr));
     inset: 12px;
-    transform: rotate(-1deg) scale(1.08);
   }
 
   .archive-tile-large {
