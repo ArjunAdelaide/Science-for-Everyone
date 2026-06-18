@@ -34,9 +34,7 @@ textarea {
 }
 
 .landing-root {
-  background:
-    linear-gradient(90deg, rgba(250, 248, 241, 0.98) 0%, rgba(250, 248, 241, 0.95) 48%, rgba(250, 248, 241, 0.72) 70%, rgba(250, 248, 241, 0.36) 100%),
-    #faf8f1;
+  background: #faf8f1;
   color: #30302f;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
 }
@@ -48,38 +46,36 @@ textarea {
 
 .landing-paper-field {
   background:
-    radial-gradient(circle at 16% 16%, rgba(68, 65, 59, 0.055), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(239, 233, 219, 0.32));
+    radial-gradient(circle at 22% 42%, rgba(250, 248, 241, 0.22), transparent 26%),
+    linear-gradient(90deg, rgba(250, 248, 241, 0.9) 0%, rgba(250, 248, 241, 0.82) 42%, rgba(250, 248, 241, 0.58) 64%, rgba(250, 248, 241, 0.26) 100%),
+    linear-gradient(180deg, rgba(250, 248, 241, 0.16), rgba(250, 248, 241, 0.06) 54%, rgba(250, 248, 241, 0.3));
   inset: 0;
+  pointer-events: none;
   position: absolute;
-  z-index: 1;
+  z-index: 2;
 }
 
 .landing-paper-field::before {
   background:
-    linear-gradient(90deg, transparent 0%, rgba(48, 48, 47, 0.06) 50%, transparent 100%),
-    repeating-linear-gradient(0deg, rgba(48, 48, 47, 0.018) 0 1px, transparent 1px 5px);
+    repeating-linear-gradient(0deg, rgba(48, 48, 47, 0.018) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(90deg, rgba(48, 48, 47, 0.012) 0 1px, transparent 1px 7px);
   content: "";
   inset: 0;
-  opacity: 0.42;
+  opacity: 0.32;
   position: absolute;
 }
 
 .landing-photo-stage {
-  bottom: clamp(32px, 6vh, 72px);
-  height: min(72vh, 720px);
+  inset: 0;
   overflow: hidden;
   position: absolute;
-  right: clamp(18px, 5vw, 72px);
-  top: clamp(86px, 12vh, 118px);
-  width: min(43vw, 620px);
-  z-index: 2;
+  z-index: 1;
 }
 
 .landing-photo-stage::after {
   background:
-    linear-gradient(90deg, rgba(250, 248, 241, 0.04), transparent 18%, transparent 78%, rgba(250, 248, 241, 0.08)),
-    linear-gradient(180deg, rgba(250, 248, 241, 0.08), transparent 30%, rgba(250, 248, 241, 0.08));
+    linear-gradient(90deg, rgba(21, 20, 18, 0.08), transparent 28%, rgba(21, 20, 18, 0.18)),
+    linear-gradient(180deg, rgba(250, 248, 241, 0.04), transparent 38%, rgba(21, 20, 18, 0.14));
   content: "";
   inset: 0;
   pointer-events: none;
@@ -91,11 +87,11 @@ textarea {
   animation: scientistFade 27.6s linear infinite;
   background-repeat: no-repeat;
   background-size: cover;
-  filter: grayscale(0.32) contrast(1.05);
+  filter: grayscale(0.42) contrast(1.06) saturate(0.76);
   inset: 0;
   opacity: 0;
   position: absolute;
-  transform: scale(1);
+  transform: scale(1.02);
   z-index: 1;
 }
 
@@ -227,18 +223,18 @@ textarea {
 @keyframes scientistFade {
   0% {
     opacity: 0;
-    transform: translateX(10px);
+    transform: scale(1.02);
   }
   4% {
-    opacity: 0.86;
+    opacity: 1;
   }
   15% {
-    opacity: 0.86;
+    opacity: 1;
   }
   20%,
   100% {
     opacity: 0;
-    transform: translateX(0);
+    transform: scale(1.07);
   }
 }
 
@@ -248,11 +244,11 @@ textarea {
     max-width: 760px;
   }
 
-  .landing-photo-stage {
-    inset: auto 22px 22px auto;
-    height: 28vh;
-    opacity: 0.84;
-    width: min(62vw, 440px);
+  .landing-paper-field {
+    background:
+      radial-gradient(circle at 22% 40%, rgba(250, 248, 241, 0.3), transparent 30%),
+      linear-gradient(90deg, rgba(250, 248, 241, 0.9) 0%, rgba(250, 248, 241, 0.8) 56%, rgba(250, 248, 241, 0.48) 100%),
+      linear-gradient(180deg, rgba(250, 248, 241, 0.28), rgba(250, 248, 241, 0.08) 56%, rgba(250, 248, 241, 0.42));
   }
 }
 
@@ -261,19 +257,10 @@ textarea {
     padding: 22px 20px;
   }
 
-  .landing-photo-stage {
-    bottom: 18px;
-    height: 24vh;
-    opacity: 0.66;
-    right: -18px;
-    top: auto;
-    width: 76vw;
-  }
-
-  .landing-photo-stage::after {
+  .landing-paper-field {
     background:
-      linear-gradient(90deg, rgba(250, 248, 241, 0.08), transparent 42%, rgba(250, 248, 241, 0.12)),
-      linear-gradient(180deg, rgba(250, 248, 241, 0.04), transparent 38%, rgba(250, 248, 241, 0.1));
+      linear-gradient(90deg, rgba(250, 248, 241, 0.88), rgba(250, 248, 241, 0.62)),
+      linear-gradient(180deg, rgba(250, 248, 241, 0.42), rgba(250, 248, 241, 0.12) 50%, rgba(250, 248, 241, 0.55));
   }
 
   .landing-title {
