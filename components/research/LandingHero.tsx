@@ -7,34 +7,34 @@ const SCIENTIST_BACKDROPS = [
   {
     name: "Terence Tao",
     image: "https://www.masterclass.com/course-images/attachments/3udqajqs3z7vvqiqbm54eprttjda?format=webp&quality=75&width=1920",
-    position: "center"
+    position: "68% center"
   },
   {
     name: "Richard Feynman",
     image: "/landing/feynman-blackboard.png",
-    position: "center"
+    position: "56% center"
   },
   {
     name: "J. Robert Oppenheimer",
     image:
       "https://bostonglobe-prod.cdn.arcpublishing.com/resizer/v2/C5YIKFSROMI6JBDZEAFGCUUKVU.jpg?auth=c457b374c4930197c08be278659db1cf39ca96c1e3b0b42080498d8cc967d00e&width=1440",
-    position: "center"
+    position: "64% center"
   },
   {
     name: "Albert Einstein",
     image: "https://www.huntington.org/sites/default/files/uploads/2016/03/einsteinwaves-1.jpg",
-    position: "center"
+    position: "62% center"
   },
   {
     name: "Edward Teller",
     image:
       "https://www.blikk.hu/static/image-transforms/1/oF0ktkpTURBXy8xOGRlNTMyZjJlNmJkZGRlMmY1ZjJkNzJmNGQ0ZjhkOC5qcGeRlQMAzKzNC_TNBrk",
-    position: "center"
+    position: "62% center"
   },
   {
     name: "Marie Curie",
     image: "/landing/marie-curie-lab.jpg",
-    position: "center"
+    position: "62% center"
   }
 ];
 
