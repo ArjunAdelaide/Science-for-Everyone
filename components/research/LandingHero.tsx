@@ -22,18 +22,107 @@ const SCIENCE_BACKDROPS = [
   }
 ];
 
-const PEN_FORMULAS = [
-  { expression: "E = mc²", x: 12, y: 18, size: "large" },
-  { expression: "∂ψ/∂t = Ĥψ", x: 56, y: 14, size: "medium" },
-  { expression: "∀ε > 0, ∃δ > 0", x: 24, y: 30, size: "small" },
-  { expression: "Gμν + Λgμν = 8πGTμν/c⁴", x: 34, y: 42, size: "large" },
-  { expression: "∫∫∫ ρ dV = M", x: 13, y: 54, size: "medium" },
-  { expression: "P(A|B)=P(B|A)P(A)/P(B)", x: 55, y: 60, size: "small" },
-  { expression: "ΔS ≥ 0", x: 32, y: 72, size: "large" },
-  { expression: "∇ · E = ρ/ε₀", x: 66, y: 24, size: "medium" },
-  { expression: "QED: contradiction ⇒ theorem", x: 18, y: 82, size: "small" },
-  { expression: "lim n→∞ Σ f(xᵢ)Δx", x: 62, y: 78, size: "small" }
+const MOTION_FRAMES = [
+  {
+    label: "combat mechanics",
+    metric: "hip torque / guard angle / center line",
+    formula: "τ = r × F"
+  },
+  {
+    label: "throwing motion",
+    metric: "release angle / spin axis / kinetic chain",
+    formula: "v₀² sin(2θ) / g"
+  },
+  {
+    label: "proof space",
+    metric: "assumption / contradiction / theorem",
+    formula: "∀ε > 0, ∃δ > 0"
+  },
+  {
+    label: "sound structure",
+    metric: "rhythm / frequency / harmonic tension",
+    formula: "f(t)=Σ Aₙ sin(nωt+φₙ)"
+  }
 ];
+
+function CombatStudy() {
+  return (
+    <svg aria-hidden="true" className="motion-figure" viewBox="0 0 720 420">
+      <path className="motion-grid-line" d="M90 325H640" />
+      <path className="motion-trace" d="M355 95L315 155L345 218L302 310" />
+      <path className="motion-trace" d="M345 218L425 300" />
+      <path className="motion-trace" d="M318 154L235 192L165 174" />
+      <path className="motion-trace hot" d="M318 154L405 145L480 105" />
+      <path className="motion-vector" d="M405 145L545 92" />
+      <path className="motion-vector" d="M302 310L232 334" />
+      <path className="motion-arc" d="M342 217A82 82 0 0 1 424 300" />
+      <path className="motion-arc hot" d="M330 160A108 108 0 0 1 480 105" />
+      {[355, 315, 345, 302, 425, 235, 165, 405, 480].map((x, index) => {
+        const y = [95, 155, 218, 310, 300, 192, 174, 145, 105][index];
+        return <circle className="motion-joint" cx={x} cy={y} key={`${x}-${y}`} r="7" />;
+      })}
+      <text className="motion-note" x="446" y="78">shoulder rotation 38°</text>
+      <text className="motion-note" x="390" y="258">base stability</text>
+    </svg>
+  );
+}
+
+function QuarterbackStudy() {
+  return (
+    <svg aria-hidden="true" className="motion-figure" viewBox="0 0 720 420">
+      <path className="motion-grid-line" d="M90 330H650" />
+      <path className="motion-trace" d="M295 108L315 174L292 246L258 328" />
+      <path className="motion-trace" d="M292 246L355 326" />
+      <path className="motion-trace hot" d="M315 174L405 134L468 74" />
+      <path className="motion-trace" d="M315 174L245 214L188 265" />
+      <path className="motion-trajectory" d="M468 74C548 42 618 78 664 154" />
+      <path className="motion-vector hot" d="M468 74L612 72" />
+      <path className="motion-vector" d="M355 326L410 332" />
+      <path className="motion-arc hot" d="M397 137A74 74 0 0 1 468 74" />
+      <ellipse className="motion-ball" cx="654" cy="144" rx="16" ry="9" transform="rotate(26 654 144)" />
+      {[295, 315, 292, 258, 355, 405, 468, 245, 188].map((x, index) => {
+        const y = [108, 174, 246, 328, 326, 134, 74, 214, 265][index];
+        return <circle className="motion-joint" cx={x} cy={y} key={`${x}-${y}`} r="7" />;
+      })}
+      <text className="motion-note" x="506" y="116">release window 42°</text>
+      <text className="motion-note" x="430" y="358">hip-to-shoulder separation</text>
+    </svg>
+  );
+}
+
+function ProofStudy() {
+  return (
+    <svg aria-hidden="true" className="motion-figure proof-figure" viewBox="0 0 720 420">
+      <text className="proof-line" x="92" y="105">Assume x ∈ A and A ⊂ B</text>
+      <text className="proof-line hot" x="126" y="168">lim h→0 [f(x+h)-f(x)] / h</text>
+      <text className="proof-line" x="92" y="232">∇ · E = ρ / ε₀</text>
+      <text className="proof-line" x="188" y="298">contradiction ⇒ theorem</text>
+      <path className="motion-arc" d="M112 128C210 78 330 82 454 130" />
+      <path className="motion-vector hot" d="M500 168L604 168" />
+      <path className="motion-grid-line" d="M88 330H620" />
+    </svg>
+  );
+}
+
+function MusicStudy() {
+  return (
+    <svg aria-hidden="true" className="motion-figure" viewBox="0 0 720 420">
+      {[122, 152, 182, 212, 242].map((y) => (
+        <path className="motion-grid-line staff" d={`M92 ${y}H632`} key={y} />
+      ))}
+      <path className="motion-wave hot" d="M95 315C138 248 178 382 225 315S312 248 358 315S445 382 492 315S582 248 632 315" />
+      <path className="motion-wave" d="M95 82C145 42 185 122 236 82S330 42 382 82S480 122 536 82S604 46 640 82" />
+      <circle className="music-note hot" cx="210" cy="182" r="18" />
+      <path className="music-stem hot" d="M228 182V96" />
+      <circle className="music-note" cx="382" cy="212" r="18" />
+      <path className="music-stem" d="M400 212V126" />
+      <circle className="music-note" cx="520" cy="152" r="18" />
+      <path className="music-stem" d="M538 152V66" />
+      <text className="motion-note" x="112" y="364">440Hz → harmonic stack</text>
+      <text className="motion-note" x="432" y="108">tension resolves</text>
+    </svg>
+  );
+}
 
 type LandingHeroProps = {
   error: string | null;
@@ -47,7 +136,7 @@ export function LandingHero({ error, form, loading, onChange, onSubmit }: Landin
   const [introVisible, setIntroVisible] = useState(true);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setIntroVisible(false), 3200);
+    const timer = window.setTimeout(() => setIntroVisible(false), 4300);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -71,23 +160,22 @@ export function LandingHero({ error, form, loading, onChange, onSubmit }: Landin
       </div>
 
       {introVisible ? (
-        <div aria-hidden="true" className="science-opener pen-opener absolute inset-0 z-20">
-          <div className="pen-paper">
-            {PEN_FORMULAS.map((formula, index) => (
-              <div
-                className={`pen-formula pen-${formula.size}`}
-                key={formula.expression}
-                style={{
-                  animationDelay: `${index * 260}ms`,
-                  left: `${formula.x}%`,
-                  top: `${formula.y}%`,
-                  transform: `rotate(${(index % 5) * 3 - 6}deg)`
-                }}
-              >
-                <span>{formula.expression}</span>
+        <div aria-hidden="true" className="science-opener motion-opener absolute inset-0 z-20">
+          {MOTION_FRAMES.map((frame, index) => (
+            <div className="motion-frame" key={frame.label} style={{ animationDelay: `${index * 880}ms` }}>
+              <div className="motion-card">
+                <div className="motion-copy">
+                  <p>{frame.label}</p>
+                  <span>{frame.metric}</span>
+                </div>
+                <div className="motion-formula">{frame.formula}</div>
+                {index === 0 ? <CombatStudy /> : null}
+                {index === 1 ? <QuarterbackStudy /> : null}
+                {index === 2 ? <ProofStudy /> : null}
+                {index === 3 ? <MusicStudy /> : null}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
           <div className="science-opener-flash" />
         </div>
       ) : null}

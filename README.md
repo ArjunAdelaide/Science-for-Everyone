@@ -20,7 +20,7 @@ EzResearch explores a more trustworthy middle ground:
 ## Key Features
 
 - Topic, keyword, or full-question input
-- minimal landing page with a white-paper formula intro, science-history backdrop, and single search box
+- minimal landing page with a rapid sports, math, and music intelligence opener plus a single search box
 - PubMed / NCBI E-utilities retrieval
 - OpenAlex retrieval with citation counts where available
 - DOI/title deduplication
@@ -209,6 +209,10 @@ npm test
 ```
 
 ## Screenshots
+
+### Motion Opener
+
+![EzResearch motion opener](docs/screenshots/motion-opener-preview.png)
 
 ### Landing Experience
 
