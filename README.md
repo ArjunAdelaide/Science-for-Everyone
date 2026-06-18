@@ -2,7 +2,7 @@
 
 Academic research intelligence for evidence-grounded briefs and decks.
 
-EzResearch is a Next.js MVP that turns a biomedical research topic, keyword, or question into a transparent research package: ranked papers, methodology notes, an evidence table, an abstract-and-metadata research brief, a slide preview, and a downloadable strategy-consulting-style PowerPoint deck.
+EzResearch is a Next.js MVP that turns a biomedical research topic, keyword, or question into a presentation-ready evidence deck with a compact sources column for auditability.
 
 It is intentionally not a full systematic-review engine. The current product works from public scholarly metadata and abstracts, keeps claims tied to retrieved records, and makes limitations visible.
 
@@ -27,9 +27,7 @@ EzResearch explores a more trustworthy middle ground:
 - likely scholarly journal filtering
 - optional preprint inclusion
 - transparent paper scoring
-- ranked evidence cards with score breakdowns
-- evidence table linking claims to retrieved papers
-- research brief in Markdown
+- deck-first results workspace with sources kept visible for auditability
 - slide-by-slide deck preview with answer-first headlines
 - downloadable editable `.pptx` deck via `pptxgenjs`, designed as a concise consulting-style evidence readout
 - explicit demo fallback records when live APIs fail, controlled by env var
@@ -39,9 +37,8 @@ EzResearch explores a more trustworthy middle ground:
 1. Start from the landing page and enter a topic such as `CRISPR delivery methods` or `glioblastoma immunotherapy`.
 2. Generate the initial intelligence package.
 3. Refine date range, max papers, preprint setting, and output type from the results workspace.
-4. Review methodology, warnings, ranked papers, score breakdowns, evidence table, and excluded records.
-5. Preview the generated deck.
-6. Download the PowerPoint deck.
+4. Review the generated deck with the source column visible.
+5. Download the PowerPoint deck.
 
 ## Tech Stack
 

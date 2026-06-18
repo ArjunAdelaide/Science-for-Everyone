@@ -4,6 +4,16 @@ import type { FormEvent } from "react";
 import type { ResearchFormState } from "@/components/research/types";
 
 const SIGNALS = ["sports", "maths", "music", "medicine", "papers", "proof", "evidence", "strategy"];
+const SCIENTISTS = [
+  "Marie Curie",
+  "Richard Feynman",
+  "Katherine Johnson",
+  "Ada Lovelace",
+  "S. Ramanujan",
+  "Rosalind Franklin",
+  "Alan Turing",
+  "Jane Goodall"
+];
 
 type LandingHeroProps = {
   error: string | null;
@@ -18,6 +28,11 @@ export function LandingHero({ error, form, loading, onChange, onSubmit }: Landin
     <main className="landing-root relative min-h-screen overflow-hidden text-ivory">
       <div aria-hidden="true" className="landing-atmosphere">
         <div className="landing-field" />
+        <div className="landing-scientists">
+          {SCIENTISTS.map((scientist) => (
+            <span key={scientist}>{scientist}</span>
+          ))}
+        </div>
         <div className="landing-ledger">
           <span>evidence → claim → citation</span>
           <span>ranked papers / source metadata / deck output</span>

@@ -2,15 +2,9 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DeckPreview } from "@/components/research/DeckPreview";
-import { EvidenceTable } from "@/components/research/EvidenceTable";
-import { ExcludedRecords } from "@/components/research/ExcludedRecords";
 import { LandingHero } from "@/components/research/LandingHero";
 import { LoadingState } from "@/components/research/LoadingState";
-import { MarkdownOutputs } from "@/components/research/MarkdownOutputs";
-import { RankedPapers } from "@/components/research/RankedPapers";
-import { ResultStatus } from "@/components/research/ResultStatus";
-import { SearchPanel } from "@/components/research/SearchPanel";
-import { SummaryHeader } from "@/components/research/SummaryHeader";
+import { SourcesColumn } from "@/components/research/SourcesColumn";
 import type { DeckDownload, ResearchFormState } from "@/components/research/types";
 import type { ResearchResult } from "@/lib/types/paper";
 
@@ -20,7 +14,7 @@ const defaultForm: ResearchFormState = {
   endYear: 2026,
   maxPapers: 10,
   includePreprints: false,
-  outputType: "both"
+  outputType: "deck"
 };
 
 export default function Home() {
@@ -127,40 +121,22 @@ export default function Home() {
     !result ? (
       <LandingHero error={error} form={form} loading={loading} onChange={setForm} onSubmit={runResearch} />
     ) : (
-    <main className="min-h-screen bg-paper">
-      <SummaryHeader averageScore={averageScore} result={result} />
+    <main className="min-h-screen bg-[#f4efe3] text-ink">
+      <div className="mx-auto grid max-w-[1500px] gap-5 px-5 py-5 lg:grid-cols-[340px_1fr]">
+        <SourcesColumn averageScore={averageScore} papers={result.papers} result={result} />
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-5 py-6 lg:grid-cols-[390px_1fr]">
-        <SearchPanel error={error} form={form} loading={loading} onChange={setForm} onSubmit={runResearch} />
-
-        <section className="space-y-6">
+        <section className="order-1 lg:order-2">
           {loading ? (
             <LoadingState />
           ) : (
-            <>
-              <ResultStatus
-                deckDownload={deckDownload}
-                downloadingDeck={downloadingDeck}
-                onDownloadDeck={downloadDeck}
-                result={result}
-              />
-              <DeckPreview
-                deckDownload={deckDownload}
-                downloadingDeck={downloadingDeck}
-                onDownload={downloadDeck}
-                slides={result.deckSlides}
-              />
-              <RankedPapers papers={result.papers} />
-              <EvidenceTable claims={result.evidenceTable} papers={result.papers} />
-              <MarkdownOutputs
-                briefMarkdown={result.briefMarkdown}
-                deckDownload={deckDownload}
-                deckOutlineMarkdown={result.deckOutlineMarkdown}
-                downloadingDeck={downloadingDeck}
-                onDownloadDeck={downloadDeck}
-              />
-              <ExcludedRecords records={result.excludedPapers} />
-            </>
+            <DeckPreview
+              deckDownload={deckDownload}
+              downloadingDeck={downloadingDeck}
+              onDownload={downloadDeck}
+              question={result.question}
+              result={result}
+              slides={result.deckSlides}
+            />
           )}
         </section>
       </div>

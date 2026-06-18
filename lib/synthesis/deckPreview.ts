@@ -17,6 +17,25 @@ function paperLabel(paper: Paper): string {
   return `${truncate(paper.title, 92)} (${paper.year || "n.d."}, ${paper.journal || paper.source})`;
 }
 
+function sourceMix(papers: Paper[]): string {
+  const counts = papers.reduce<Record<string, number>>((acc, paper) => {
+    const source = paper.source === "pubmed" ? "PubMed" : paper.source === "openalex" ? "OpenAlex" : "Demo";
+    acc[source] = (acc[source] || 0) + 1;
+    return acc;
+  }, {});
+
+  return Object.entries(counts)
+    .map(([source, count]) => `${source}: ${count}`)
+    .join(" | ");
+}
+
+function evidenceMix(papers: Paper[]): string {
+  const labels = papers.flatMap((paper) => paper.publicationTypes).filter(Boolean);
+  const priority = ["Meta-Analysis", "Systematic Review", "Review", "Clinical Trial", "Journal Article"];
+  const present = priority.filter((label) => labels.some((type) => type.toLowerCase().includes(label.toLowerCase())));
+  return present.length ? present.slice(0, 4).join(", ") : "journal/source metadata varies by record";
+}
+
 function claimPapers(claim: EvidenceClaim | undefined, papers: Paper[]): Paper[] {
   return (claim?.supportingPaperIds || [])
     .map((id) => papers.find((paper) => paper.id === id))
@@ -38,12 +57,13 @@ export function buildDeckPreviewSlides(
     return {
       id: `finding-${index + 1}`,
       eyebrow: `Finding ${index + 1}`,
-      title: truncate(`Abstract-level evidence suggests: ${claim.claim}`, 125),
-      subtitle: `Evidence confidence: ${claim.confidence}`,
+      title: truncate(claim.claim, 125),
+      subtitle: `${claim.confidence} confidence based on ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
       bullets: [
-        `Evidence: ${supportingPapers.map(cite).join("; ") || "No supporting papers mapped"}.`,
-        `Interpretation: this should be treated as a directional signal from retrieved abstracts, not a full-text conclusion.`,
-        `Caveat: ${claim.limitations}`
+        `What the evidence says: ${claim.explanation}`,
+        `Support: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
+        `Presenter note: state this as an abstract-level signal, not a settled full-text conclusion.`,
+        `Limitation: ${claim.limitations}`
       ],
       citations: supportingPapers.map(paperLabel),
       footnote: "Claim is generated only from retrieved abstract and metadata fields."
@@ -57,9 +77,9 @@ export function buildDeckPreviewSlides(
       title: truncate(question, 125),
       subtitle: `${methodology.dateRange.startYear}-${methodology.dateRange.endYear} | ${papers.length} papers analysed`,
       bullets: [
-        "Evidence-grounded research intelligence package.",
-        "Built from retrieved PubMed/OpenAlex records with citation traceability.",
-        "Designed as an executive-ready starting point for deeper review."
+        "Presentation-ready research brief built from retrieved scholarly metadata and abstracts.",
+        "Every substantive claim is tied back to source records in the deck and sources column.",
+        "Designed for a first-pass briefing: fast, auditable, and explicit about limitations."
       ],
       citations: []
     },
@@ -67,16 +87,30 @@ export function buildDeckPreviewSlides(
       id: "executive-takeaway",
       eyebrow: "Executive takeaway",
       title: topClaim
-        ? truncate(`The strongest retrieved signal is: ${topClaim}`, 125)
+        ? truncate(`The strongest retrieved signal: ${topClaim}`, 125)
         : "The search produced an auditable evidence base, but no strong claim passed synthesis.",
-      subtitle: "Answer-first summary",
+      subtitle: "Use this slide to open the presentation",
       bullets: [
-        `${papers.length} likely scholarly records were analysed after deduplication and filtering.`,
-        `The current evidence package is ${methodology.analysisDepth}; full-text validation remains required.`,
-        "The deck highlights what the retrieved abstracts support, where confidence is limited, and which papers carry each claim."
+        `${papers.length} likely scholarly records were analysed after deduplication, preprint filtering, and transparent scoring.`,
+        `Source mix: ${sourceMix(papers) || "no sources retrieved"}.`,
+        `Evidence mix: ${evidenceMix(papers)}.`,
+        "The deck separates supported claims, confidence, limitations, and references so it can be presented without inventing citations."
       ],
       citations: topPapers.slice(0, 3).map(paperLabel),
       footnote: "Takeaway is constrained to retrieved metadata and abstracts."
+    },
+    {
+      id: "presentation-roadmap",
+      eyebrow: "Roadmap",
+      title: "The deck moves from answer to evidence to caveats",
+      subtitle: "A presenter-ready structure for any searched topic",
+      bullets: [
+        "Start with the executive takeaway and the evidence landscape.",
+        "Walk through the highest-confidence findings, each with source support.",
+        "Close with evidence strength, uncertainty, open questions, and references.",
+        "Use the sources column to answer where each claim came from."
+      ],
+      citations: []
     },
     {
       id: "methodology",
@@ -95,9 +129,9 @@ export function buildDeckPreviewSlides(
     },
     {
       id: "evidence-base",
-      eyebrow: "Evidence base",
-      title: "The highest-ranked records combine topical fit, recency, evidence type, and citation signal",
-      subtitle: "Transparent scoring model",
+      eyebrow: "Source landscape",
+      title: "The evidence base is ranked for relevance, recency, evidence type, and citation signal",
+      subtitle: `${sourceMix(papers)} | ${evidenceMix(papers)}`,
       bullets: topPapers.map(
         (paper) =>
           `${paper.score?.finalScore ?? "n/a"}/100 - ${truncate(paper.title, 86)} (${paper.year || "n.d."})`
@@ -108,12 +142,12 @@ export function buildDeckPreviewSlides(
     {
       id: "evidence-strength",
       eyebrow: "Evidence strength",
-      title: "Confidence should be interpreted as evidence triage, not final scientific adjudication",
+      title: "Confidence should be interpreted as evidence triage, not final adjudication",
       subtitle: "Useful, but not a substitute for full-text review",
       bullets: [
-        "High-confidence claims need strong query overlap, recent publication date, stronger publication type, and multiple supporting papers.",
-        "Systematic reviews, meta-analyses, reviews, clinical trials, and journal articles receive different evidence weights.",
-        "Citation counts are used where available, primarily through OpenAlex.",
+        "Higher confidence requires topical overlap, recent publication date, stronger publication type, and multiple supporting papers.",
+        "Reviews, meta-analyses, clinical trials, and journal articles receive different evidence weights where metadata supports it.",
+        "Citation counts are used where available, primarily through OpenAlex, but are a secondary signal.",
         "Full-text review is needed for methods, populations, outcomes, safety caveats, and disagreement."
       ],
       citations: topPapers.slice(0, 3).map(paperLabel)
