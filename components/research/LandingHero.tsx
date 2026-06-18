@@ -66,10 +66,6 @@ export function LandingHero({ error, form, loading, onChange, onSubmit }: Landin
         </div>
       </div>
 
-      <header className="landing-nav">
-        <span>Science for Everyone</span>
-      </header>
-
       <section className="relative z-10 flex min-h-screen items-center px-5">
         <div className="mx-auto grid w-full max-w-7xl gap-10 py-28 lg:grid-cols-[0.95fr_0.72fr] lg:items-end">
           <div className="landing-copy">

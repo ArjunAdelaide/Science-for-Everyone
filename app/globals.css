@@ -46,9 +46,9 @@ textarea {
 
 .landing-paper-field {
   background:
-    radial-gradient(circle at 22% 42%, rgba(250, 248, 241, 0.16), transparent 26%),
-    linear-gradient(90deg, rgba(250, 248, 241, 0.86) 0%, rgba(250, 248, 241, 0.72) 42%, rgba(250, 248, 241, 0.42) 64%, rgba(250, 248, 241, 0.14) 100%),
-    linear-gradient(180deg, rgba(250, 248, 241, 0.1), rgba(250, 248, 241, 0.02) 54%, rgba(250, 248, 241, 0.18));
+    radial-gradient(circle at 22% 42%, rgba(250, 248, 241, 0.12), transparent 26%),
+    linear-gradient(90deg, rgba(250, 248, 241, 0.8) 0%, rgba(250, 248, 241, 0.62) 42%, rgba(250, 248, 241, 0.32) 64%, rgba(250, 248, 241, 0.08) 100%),
+    linear-gradient(180deg, rgba(250, 248, 241, 0.06), rgba(250, 248, 241, 0.01) 54%, rgba(250, 248, 241, 0.12));
   inset: 0;
   pointer-events: none;
   position: absolute;
@@ -87,7 +87,7 @@ textarea {
   animation: scientistFade 27.6s linear infinite;
   background-repeat: no-repeat;
   background-size: cover;
-  filter: grayscale(0.26) contrast(1.12) saturate(0.92);
+  filter: grayscale(0.18) contrast(1.16) saturate(1);
   inset: 0;
   opacity: 0;
   position: absolute;
@@ -95,30 +95,9 @@ textarea {
   z-index: 1;
 }
 
-.landing-nav {
-  align-items: center;
-  color: rgba(48, 48, 47, 0.66);
-  display: flex;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 12px;
-  justify-content: space-between;
-  left: 0;
-  letter-spacing: 0.01em;
-  padding: 28px 32px;
-  position: absolute;
-  right: 0;
-  top: 0;
-  z-index: 20;
-}
-
-.landing-nav span {
-  color: rgba(48, 48, 47, 0.72);
-  font-weight: 500;
-}
-
 .landing-title {
   color: #30302f;
-  font-size: clamp(54px, 7.1vw, 106px);
+  font-size: clamp(44px, 5.7vw, 82px);
   font-weight: 400;
   letter-spacing: 0;
   line-height: 1.12;
@@ -129,11 +108,11 @@ textarea {
 }
 
 .landing-copy {
-  padding-bottom: clamp(8px, 4vh, 44px);
+  padding-bottom: clamp(0px, 2vh, 20px);
 }
 
 .landing-console {
-  margin-top: clamp(38px, 7vh, 84px);
+  margin-top: clamp(24px, 4.8vh, 54px);
   position: relative;
   z-index: 2;
   width: min(100%, 620px);
@@ -240,35 +219,31 @@ textarea {
 
 @media (max-width: 960px) {
   .landing-title {
-    font-size: 50px;
+    font-size: 44px;
     max-width: 760px;
   }
 
   .landing-paper-field {
     background:
-      radial-gradient(circle at 22% 40%, rgba(250, 248, 241, 0.24), transparent 30%),
-      linear-gradient(90deg, rgba(250, 248, 241, 0.86) 0%, rgba(250, 248, 241, 0.7) 56%, rgba(250, 248, 241, 0.34) 100%),
-      linear-gradient(180deg, rgba(250, 248, 241, 0.18), rgba(250, 248, 241, 0.04) 56%, rgba(250, 248, 241, 0.28));
+      radial-gradient(circle at 22% 40%, rgba(250, 248, 241, 0.18), transparent 30%),
+      linear-gradient(90deg, rgba(250, 248, 241, 0.8) 0%, rgba(250, 248, 241, 0.6) 56%, rgba(250, 248, 241, 0.26) 100%),
+      linear-gradient(180deg, rgba(250, 248, 241, 0.12), rgba(250, 248, 241, 0.02) 56%, rgba(250, 248, 241, 0.2));
   }
 }
 
 @media (max-width: 680px) {
-  .landing-nav {
-    padding: 22px 20px;
-  }
-
   .landing-paper-field {
     background:
-      linear-gradient(90deg, rgba(250, 248, 241, 0.82), rgba(250, 248, 241, 0.48)),
-      linear-gradient(180deg, rgba(250, 248, 241, 0.32), rgba(250, 248, 241, 0.08) 50%, rgba(250, 248, 241, 0.42));
+      linear-gradient(90deg, rgba(250, 248, 241, 0.76), rgba(250, 248, 241, 0.38)),
+      linear-gradient(180deg, rgba(250, 248, 241, 0.24), rgba(250, 248, 241, 0.04) 50%, rgba(250, 248, 241, 0.32));
   }
 
   .landing-title {
-    font-size: 39px;
+    font-size: 34px;
   }
 
   .landing-console {
-    margin-top: 42px;
+    margin-top: 28px;
   }
 }
 
