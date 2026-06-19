@@ -39,14 +39,14 @@ const ARCHIVE_IMAGES = [
 ];
 
 const ARCHIVE_TILES = [
-  { imageIndex: 1, className: "archive-tile-large", delay: "0ms" },
-  { imageIndex: 0, className: "archive-tile-portrait", delay: "120ms" },
-  { imageIndex: 5, className: "archive-tile-tall", delay: "240ms" },
-  { imageIndex: 3, className: "archive-tile-wide", delay: "360ms" },
-  { imageIndex: 2, className: "archive-tile-small-a", delay: "480ms" },
-  { imageIndex: 4, className: "archive-tile-small-b", delay: "600ms" },
-  { imageIndex: 1, className: "archive-tile-strip", delay: "720ms" },
-  { imageIndex: 5, className: "archive-tile-small-c", delay: "840ms" }
+  { imageIndex: 1, className: "archive-tile-large", delay: "0ms", position: "50% center" },
+  { imageIndex: 0, className: "archive-tile-portrait", delay: "120ms", position: "46% center" },
+  { imageIndex: 5, className: "archive-tile-tall", delay: "240ms", position: "47% center" },
+  { imageIndex: 3, className: "archive-tile-wide", delay: "360ms", position: "48% center" },
+  { imageIndex: 2, className: "archive-tile-small-a", delay: "480ms", position: "50% center" },
+  { imageIndex: 4, className: "archive-tile-small-b", delay: "600ms", position: "50% center" },
+  { imageIndex: 1, className: "archive-tile-strip", delay: "720ms", position: "48% center" },
+  { imageIndex: 5, className: "archive-tile-small-c", delay: "840ms", position: "45% center" }
 ];
 
 type LandingHeroProps = {
@@ -63,7 +63,7 @@ function getArchiveTileStyle(tile: (typeof ARCHIVE_TILES)[number]): CSSPropertie
   return {
     animationDelay: tile.delay,
     backgroundImage: `url("${image.image}")`,
-    backgroundPosition: image.position
+    backgroundPosition: tile.position ?? image.position
   };
 }
 
