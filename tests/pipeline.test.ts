@@ -3,6 +3,7 @@ import { scorePaper, rankPapers } from "@/lib/scoring/paperScore";
 import { dedupePapers } from "@/lib/scholarly/dedupe";
 import { filterPapers } from "@/lib/scholarly/filter";
 import { buildEvidenceTable, generateBriefMarkdown } from "@/lib/synthesis/briefGenerator";
+import { buildDeckPreviewSlides } from "@/lib/synthesis/deckPreview";
 import { buildResearchSynthesis } from "@/lib/synthesis/researchSynthesis";
 import type { Paper, ResearchRequest, SearchMethodology } from "@/lib/types/paper";
 
@@ -104,9 +105,12 @@ describe("paper processing", () => {
     };
     const synthesis = buildResearchSynthesis("CRISPR delivery methods", methodology, ranked);
     const evidence = buildEvidenceTable(ranked, synthesis.themes);
+    const slides = buildDeckPreviewSlides("CRISPR delivery methods", methodology, ranked, evidence, synthesis);
 
     expect(synthesis.themes.length).toBeGreaterThan(0);
-    expect(synthesis.keyTakeaways[0]).toContain("synthesised");
+    expect(synthesis.topicPrimer.overview.toLowerCase()).toContain("crispr delivery");
+    expect(synthesis.findings[0].takeaway).toContain("delivery");
+    expect(slides.map((slide) => slide.id)).toEqual(expect.arrayContaining(["topic-primer", "why-it-matters", "finding-1"]));
     expect(evidence[0].supportingPaperIds.length).toBeGreaterThan(1);
   });
 });

@@ -1,4 +1,4 @@
-import type { Paper, ResearchSynthesis, ResearchTheme, SearchMethodology } from "@/lib/types/paper";
+import type { Paper, ResearchFinding, ResearchSynthesis, ResearchTheme, SearchMethodology, TopicPrimer } from "@/lib/types/paper";
 import { extractKeywords } from "@/lib/scholarly/query";
 
 const THEME_DEFINITIONS = [
@@ -151,6 +151,10 @@ function cite(paper: Paper): string {
 }
 
 function strongestSentence(papers: Paper[], queryKeywords: string[]): string {
+  return strongestSentences(papers, queryKeywords, 1)[0] || "The retrieved papers provide directional abstract-level evidence.";
+}
+
+function strongestSentences(papers: Paper[], queryKeywords: string[], limit: number): string[] {
   const sentences = papers
     .flatMap((paper) => (paper.abstract || paper.keyFinding || paper.title).split(/(?<=[.!?])\s+/).map((sentence) => ({ sentence, paper })))
     .map(({ sentence, paper }) => {
@@ -162,7 +166,14 @@ function strongestSentence(papers: Paper[], queryKeywords: string[]): string {
     .filter((item) => item.sentence.length > 32)
     .sort((a, b) => b.score - a.score);
 
-  return sentences[0]?.sentence || papers[0]?.keyFinding || papers[0]?.title || "The retrieved papers provide directional abstract-level evidence.";
+  const unique: string[] = [];
+  sentences.forEach(({ sentence }) => {
+    const normalized = sentence.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (unique.some((existing) => existing.toLowerCase().replace(/[^a-z0-9]+/g, " ").includes(normalized.slice(0, 48)))) return;
+    unique.push(sentence);
+  });
+
+  return unique.slice(0, limit);
 }
 
 function confidenceFor(papers: Paper[]): ResearchTheme["evidenceLevel"] {
@@ -216,6 +227,52 @@ function topConcepts(papers: Paper[], question: string): string[] {
     .map(([word]) => word);
 }
 
+function formatConcepts(concepts: string[]): string {
+  if (concepts.length === 0) return "the dominant concepts in the retrieved abstracts";
+  if (concepts.length === 1) return concepts[0];
+  if (concepts.length === 2) return `${concepts[0]} and ${concepts[1]}`;
+  return `${concepts.slice(0, -1).join(", ")}, and ${concepts[concepts.length - 1]}`;
+}
+
+function topicLabel(question: string): string {
+  const cleaned = question
+    .replace(/\b(what|are|is|the|latest|recent|peer-reviewed|findings|on|about|from|between|and)\b/gi, " ")
+    .replace(/\b(19|20)\d{2}\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const keywords = extractKeywords(cleaned || question).slice(0, 5);
+  return keywords.length ? keywords.join(" ") : question.trim();
+}
+
+function buildTopicPrimer(question: string, papers: Paper[]): TopicPrimer {
+  const topic = topicLabel(question);
+  const concepts = topConcepts(papers, question).slice(0, 8);
+  const focus = concepts.length
+    ? [
+        `The retrieved literature repeatedly discusses ${formatConcepts(concepts.slice(0, 3))}.`,
+        `The strongest records frame the topic through ${formatConcepts(concepts.slice(3, 6))}.`,
+        "The deck treats these recurring terms as the starting map for the findings, not as a full ontology of the field."
+      ]
+    : [
+        "The retrieved literature is sparse or metadata-light, so the deck starts from the highest-scoring papers.",
+        "The topic should be interpreted through the ranked source list until deeper full-text extraction is added."
+      ];
+
+  return {
+    topic,
+    overview: concepts.length
+      ? `${topic} is presented here as an active research area shaped by ${formatConcepts(concepts.slice(0, 4))}. The retrieved abstracts suggest the field is trying to understand how these pieces connect, which methods are most informative, and where the strongest recent evidence is accumulating.`
+      : `${topic} is presented here through the retrieved abstracts and metadata. The evidence base is too thin for a broad primer, so the deck focuses on the highest-scoring records and their directly stated claims.`,
+    whyItMatters: /clinical|patient|therapy|therapeutic|disease|treatment|delivery|crispr|drug|vaccine|diagnos/i.test(
+      `${question} ${papers.map(textForPaper).join(" ")}`
+    )
+      ? `This matters because decisions in biomedical research often depend on whether promising mechanisms, methods, or delivery approaches can translate from controlled studies into reliable biological or clinical impact.`
+      : `This matters because the literature is moving faster than most readers can track manually; a useful presentation needs to compress the field into clear concepts, findings, and unresolved questions.`,
+    currentFocus: focus,
+    keyTerms: concepts.slice(0, 8)
+  };
+}
+
 function papersForTheme(papers: Paper[], patterns: readonly RegExp[]): Paper[] {
   return papers.filter((paper) => patterns.some((pattern) => pattern.test(textForPaper(paper)))).slice(0, 5);
 }
@@ -254,6 +311,54 @@ function buildTheme(
   };
 }
 
+function findingTitleForTheme(theme: ResearchTheme, papers: Paper[], question: string): string {
+  const concepts = topConcepts(papers, question).slice(0, 3);
+  const conceptPhrase = formatConcepts(concepts);
+
+  if (theme.id === "methods-and-measurement") {
+    return `Research activity centres on ${conceptPhrase}`;
+  }
+  if (theme.id === "findings-and-effects") {
+    return `Reported effects cluster around ${conceptPhrase}`;
+  }
+  if (theme.id === "constraints-and-risks") {
+    return `The main caveats involve ${conceptPhrase}`;
+  }
+  if (theme.id === "application-and-translation") {
+    return `Translation depends on ${conceptPhrase}`;
+  }
+  if (theme.id === "evidence-synthesis") {
+    return `Review evidence is organising the field around ${conceptPhrase}`;
+  }
+  return `The literature frames the topic through ${conceptPhrase}`;
+}
+
+function buildFindingsFromThemes(question: string, themes: ResearchTheme[], papers: Paper[]): ResearchFinding[] {
+  const queryKeywords = extractKeywords(question);
+
+  return themes.slice(0, 5).map((theme, index) => {
+    const supportingPapers = theme.supportingPaperIds
+      .map((id) => papers.find((paper) => paper.id === id))
+      .filter((paper): paper is Paper => Boolean(paper));
+    const details = strongestSentences(supportingPapers, queryKeywords, 3);
+    const concepts = topConcepts(supportingPapers, question).slice(0, 4);
+
+    return {
+      id: `finding-${index + 1}`,
+      title: findingTitleForTheme(theme, supportingPapers, question),
+      takeaway: truncate(details[0] || theme.summary, 240),
+      explanation: concepts.length
+        ? `Across ${supportingPapers.length} retrieved source${supportingPapers.length === 1 ? "" : "s"}, this finding is connected to ${formatConcepts(concepts)}.`
+        : `Across ${supportingPapers.length} retrieved source${supportingPapers.length === 1 ? "" : "s"}, this finding is visible in the highest-scoring abstracts.`,
+      whyItMatters: theme.implications[0],
+      supportingDetails: details.slice(1),
+      supportingPaperIds: theme.supportingPaperIds,
+      evidenceLevel: theme.evidenceLevel,
+      limitations: theme.limitations
+    };
+  });
+}
+
 function buildFallbackThemes(question: string, papers: Paper[]): ResearchTheme[] {
   return papers.slice(0, 3).map((paper, index) => buildTheme(
     {
@@ -273,8 +378,16 @@ export function buildResearchSynthesis(
 ): ResearchSynthesis {
   if (papers.length === 0) {
     return {
+      topicPrimer: {
+        topic: topicLabel(question),
+        overview: "No papers passed the current retrieval and filtering pipeline, so EzResearch cannot generate a source-grounded topic primer.",
+        whyItMatters: "The deck needs retrieved scholarly records before it can teach the topic responsibly.",
+        currentFocus: [],
+        keyTerms: []
+      },
       executiveAnswer: "No papers passed the current retrieval and filtering pipeline, so no evidence-grounded synthesis can be produced.",
       keyTakeaways: ["Broaden the query, expand the date range, or allow preprints if appropriate."],
+      findings: [],
       themes: [],
       areasOfAgreement: [],
       uncertainties: ["The evidence base is empty after filtering."],
@@ -289,20 +402,24 @@ export function buildResearchSynthesis(
   }).filter((theme): theme is ResearchTheme => Boolean(theme));
 
   const finalThemes = themes.length > 0 ? themes.slice(0, 4) : buildFallbackThemes(question, papers);
+  const findings = buildFindingsFromThemes(question, finalThemes, papers);
+  const topicPrimer = buildTopicPrimer(question, papers);
   const topConceptList = topConcepts(papers, question);
-  const topTheme = finalThemes[0];
+  const topFinding = findings[0];
 
   return {
-    executiveAnswer: topTheme
-      ? `${topTheme.summary} Overall, the retrieved evidence should be treated as ${methodology.analysisDepth} research triage rather than a full systematic review.`
+    topicPrimer,
+    executiveAnswer: topFinding
+      ? `${topFinding.takeaway} Overall, the retrieved evidence should be treated as ${methodology.analysisDepth} research triage rather than a full systematic review.`
       : "The retrieved evidence is relevant, but the current records do not form a strong theme without full-text review.",
     keyTakeaways: [
-      `${papers.length} ranked source${papers.length === 1 ? "" : "s"} were synthesised into ${finalThemes.length} briefing theme${finalThemes.length === 1 ? "" : "s"}.`,
-      topTheme ? `${topTheme.title} is the strongest initial storyline.` : "The evidence base is too thin for a strong storyline.",
+      `${topicPrimer.topic} is the focus of this evidence-grounded presentation.`,
+      topFinding ? `${topFinding.title}.` : "The evidence base is too thin for a strong storyline.",
       topConceptList.length ? `Recurring concepts include ${topConceptList.slice(0, 5).join(", ")}.` : "Recurring concepts were limited in metadata/abstract text."
     ],
+    findings,
     themes: finalThemes,
-    areasOfAgreement: finalThemes.slice(0, 3).map((theme) => `${theme.title}: ${theme.headline}`),
+    areasOfAgreement: findings.slice(0, 3).map((finding) => `${finding.title}: ${finding.takeaway}`),
     uncertainties: [
       "Abstracts often omit detailed methods, populations, endpoints, negative findings, and safety caveats.",
       "Retrieved metadata cannot guarantee peer-review status or resolve conflicting findings across full texts.",

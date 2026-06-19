@@ -62,9 +62,31 @@ export type ResearchTheme = {
   limitations: string[];
 };
 
+export type TopicPrimer = {
+  topic: string;
+  overview: string;
+  whyItMatters: string;
+  currentFocus: string[];
+  keyTerms: string[];
+};
+
+export type ResearchFinding = {
+  id: string;
+  title: string;
+  takeaway: string;
+  explanation: string;
+  whyItMatters: string;
+  supportingDetails: string[];
+  supportingPaperIds: string[];
+  evidenceLevel: ResearchTheme["evidenceLevel"];
+  limitations: string[];
+};
+
 export type ResearchSynthesis = {
+  topicPrimer: TopicPrimer;
   executiveAnswer: string;
   keyTakeaways: string[];
+  findings: ResearchFinding[];
   themes: ResearchTheme[];
   areasOfAgreement: string[];
   uncertainties: string[];
