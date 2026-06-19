@@ -82,12 +82,24 @@ export type ResearchFinding = {
   limitations: string[];
 };
 
+export type PaperInsight = {
+  paperId: string;
+  roleInLiterature: string;
+  studyDesignOrApproach: string;
+  mainResult: string;
+  mechanismOrExplanation: string;
+  limitations: string;
+  presentableTakeaway: string;
+};
+
 export type ResearchSynthesis = {
   topicPrimer: TopicPrimer;
   executiveAnswer: string;
   keyTakeaways: string[];
   findings: ResearchFinding[];
   themes: ResearchTheme[];
+  paperInsights?: PaperInsight[];
+  synthesisMode?: "deterministic" | "expert-agent";
   areasOfAgreement: string[];
   uncertainties: string[];
   researchGaps: string[];

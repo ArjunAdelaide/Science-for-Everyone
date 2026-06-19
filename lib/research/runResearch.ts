@@ -10,6 +10,7 @@ import { buildEvidenceTable, generateBriefMarkdown } from "@/lib/synthesis/brief
 import { generateDeckOutlineMarkdown } from "@/lib/synthesis/deckGenerator";
 import { buildDeckPreviewSlides } from "@/lib/synthesis/deckPreview";
 import { buildResearchSynthesis } from "@/lib/synthesis/researchSynthesis";
+import { enhanceSynthesisWithExpertAgents } from "@/lib/synthesis/expertSynthesis";
 import { mockPapers } from "@/lib/scholarly/mockPapers";
 
 function methodologyFor(request: ResearchRequest, generatedQueries: string[], notes: string[]): SearchMethodology {
@@ -99,7 +100,14 @@ export async function runResearch(request: ResearchRequest): Promise<ResearchRes
     "Key findings are abstract-derived and should be validated against full text before high-stakes use."
   ];
   const methodology = methodologyFor(request, generatedQueries, notes);
-  const synthesis = buildResearchSynthesis(request.question, methodology, ranked);
+  const baseSynthesis = buildResearchSynthesis(request.question, methodology, ranked);
+  const expertSynthesis = await enhanceSynthesisWithExpertAgents(request.question, methodology, ranked, baseSynthesis);
+  const synthesis = expertSynthesis.synthesis;
+  if (expertSynthesis.usedExpertModel) {
+    warnings.push("Expert agent synthesis was used to create the topic primer, findings, and deck narrative.");
+  } else if (expertSynthesis.warning) {
+    warnings.push(expertSynthesis.warning);
+  }
   const evidenceTable = buildEvidenceTable(ranked, synthesis.themes);
   const deckSlides = buildDeckPreviewSlides(request.question, methodology, ranked, evidenceTable, synthesis);
   const briefMarkdown =

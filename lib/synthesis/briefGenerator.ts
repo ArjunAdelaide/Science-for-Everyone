@@ -91,6 +91,14 @@ export function generateBriefMarkdown(
         `${index + 1}. **${theme.title}** (${theme.evidenceLevel}). ${theme.summary} Implications: ${theme.implications.join(" ")}`
     )
     .join("\n\n");
+  const insightLines = (synthesis?.paperInsights || [])
+    .slice(0, 10)
+    .map((insight, index) => {
+      const paper = papers.find((candidate) => candidate.id === insight.paperId);
+      const source = paper ? cite(paper) : insight.paperId;
+      return `${index + 1}. **${source}.** ${insight.presentableTakeaway} Main result: ${insight.mainResult} Limitation: ${insight.limitations}`;
+    })
+    .join("\n");
   const agreementLines = (synthesis?.areasOfAgreement || []).map((item) => `- ${item}`).join("\n");
   const uncertaintyLines = (synthesis?.uncertainties || []).map((item) => `- ${item}`).join("\n");
   const gapLines = (synthesis?.researchGaps || []).map((item) => `- ${item}`).join("\n");
@@ -121,6 +129,9 @@ ${findingLines || "No evidence claims were generated."}
 
 ## Synthesised Themes
 ${themeLines || "No cross-paper themes were generated."}
+
+## Paper-Level Expert Notes
+${insightLines || "No paper-level expert notes were generated."}
 
 ## Evidence Table
 | Claim | Supporting papers | Confidence | Explanation | Limitations |

@@ -74,6 +74,7 @@ export function buildDeckPreviewSlides(
   const themes = synthesis?.themes || [];
   const findings = synthesis?.findings || [];
   const primer = synthesis?.topicPrimer;
+  const paperInsights = synthesis?.paperInsights || [];
   const topClaim = findings[0]?.title || claims[0]?.claim;
   const findingSlides = findings.slice(0, 5).map((finding, index) => {
     const supportingPapers = findingPapers(finding, papers);
@@ -191,6 +192,26 @@ export function buildDeckPreviewSlides(
       footnote: "Takeaway is constrained to retrieved metadata and abstracts."
     },
     ...fallbackFindingSlides,
+    {
+      id: "paper-insights",
+      eyebrow: "Key papers in context",
+      title: "What the most useful papers contribute to the story",
+      subtitle: synthesis?.synthesisMode === "expert-agent" ? "Expert-agent interpretation of retrieved abstracts" : "Abstract-derived source interpretation",
+      bullets: paperInsights.length
+        ? paperInsights.slice(0, 5).map((insight) => {
+            const paper = papers.find((candidate) => candidate.id === insight.paperId);
+            return `${cite(paper)}: ${truncate(insight.presentableTakeaway || insight.mainResult, 145)}`;
+          })
+        : topPapers.map((paper) => `${cite(paper)}: ${truncate(paper.reasonIncluded || paper.abstract || paper.title, 145)}`),
+      citations: paperInsights.length
+        ? paperInsights
+            .slice(0, 5)
+            .map((insight) => papers.find((paper) => paper.id === insight.paperId))
+            .filter((paper): paper is Paper => Boolean(paper))
+            .map(paperLabel)
+        : topPapers.map(paperLabel),
+      footnote: "Paper roles are constrained to retrieved abstract and metadata fields."
+    },
     {
       id: "evidence-base",
       eyebrow: "Source landscape",

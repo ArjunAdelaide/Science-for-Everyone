@@ -20,6 +20,7 @@ export function generateDeckOutlineMarkdown(
   const themes = synthesis?.themes || [];
   const findings = synthesis?.findings || [];
   const primer = synthesis?.topicPrimer;
+  const paperInsights = synthesis?.paperInsights || [];
 
   return `# Slide Deck Outline: ${request.question}
 
@@ -55,8 +56,16 @@ export function generateDeckOutlineMarkdown(
 - Finding: ${findings[2]?.takeaway || claims[2]?.explanation || "No evidence explanation generated"}
 - Why it matters: ${findings[2]?.whyItMatters || themes[2]?.implications.join(" ") || "Treat the signal as directional until full-text validation is complete."}
 
-## 8. Literature Map
-${topPapers.map((paper) => `- ${compactPaper(paper)} - score ${paper.score?.finalScore ?? "n/a"}/100`).join("\n")}
+## 8. Key Papers in Context
+${paperInsights.length
+  ? paperInsights
+      .slice(0, 5)
+      .map((insight) => {
+        const paper = papers.find((candidate) => candidate.id === insight.paperId);
+        return `- ${compactPaper(paper)} - ${insight.presentableTakeaway}`;
+      })
+      .join("\n")
+  : topPapers.map((paper) => `- ${compactPaper(paper)} - score ${paper.score?.finalScore ?? "n/a"}/100`).join("\n")}
 
 ## 9. Open Questions
 ${(synthesis?.uncertainties || [

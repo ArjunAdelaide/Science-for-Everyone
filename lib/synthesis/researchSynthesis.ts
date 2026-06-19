@@ -389,6 +389,8 @@ export function buildResearchSynthesis(
       keyTakeaways: ["Broaden the query, expand the date range, or allow preprints if appropriate."],
       findings: [],
       themes: [],
+      paperInsights: [],
+      synthesisMode: "deterministic",
       areasOfAgreement: [],
       uncertainties: ["The evidence base is empty after filtering."],
       researchGaps: ["No source-backed gap analysis is possible without retrieved papers."],
@@ -419,6 +421,16 @@ export function buildResearchSynthesis(
     ],
     findings,
     themes: finalThemes,
+    paperInsights: papers.slice(0, 10).map((paper) => ({
+      paperId: paper.id,
+      roleInLiterature: paper.publicationTypes.join(", ") || "Retrieved scholarly record",
+      studyDesignOrApproach: paper.method || paper.publicationTypes.join(", ") || "Approach not available from metadata.",
+      mainResult: paper.keyFinding || strongestSentence([paper], extractKeywords(question)),
+      mechanismOrExplanation: paper.abstract ? truncate(paper.abstract, 220) : "Mechanism or explanation not available from abstract metadata.",
+      limitations: paper.limitation || "Full-text review is required to confirm methods, endpoints, and caveats.",
+      presentableTakeaway: paper.relevanceToQuestion || paper.reasonIncluded || `Relevant source for ${topicPrimer.topic}.`
+    })),
+    synthesisMode: "deterministic",
     areasOfAgreement: findings.slice(0, 3).map((finding) => `${finding.title}: ${finding.takeaway}`),
     uncertainties: [
       "Abstracts often omit detailed methods, populations, endpoints, negative findings, and safety caveats.",
