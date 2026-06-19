@@ -3,6 +3,7 @@ import { scorePaper, rankPapers } from "@/lib/scoring/paperScore";
 import { dedupePapers } from "@/lib/scholarly/dedupe";
 import { filterPapers } from "@/lib/scholarly/filter";
 import { buildEvidenceTable, generateBriefMarkdown } from "@/lib/synthesis/briefGenerator";
+import { buildResearchSynthesis } from "@/lib/synthesis/researchSynthesis";
 import type { Paper, ResearchRequest, SearchMethodology } from "@/lib/types/paper";
 
 function paper(overrides: Partial<Paper>): Paper {
@@ -80,5 +81,32 @@ describe("paper processing", () => {
     expect(evidence[0].supportingPaperIds).toEqual(["p1"]);
     expect(brief).toContain("EzResearch Research Brief");
     expect(brief).toContain("10.123/test");
+  });
+
+  it("clusters ranked papers into explanatory synthesis themes", () => {
+    const ranked = rankPapers(
+      [
+        paper({ id: "p1", title: "CRISPR delivery with lipid nanoparticles", abstract: "Lipid nanoparticle delivery improved editing efficiency in vivo." }),
+        paper({ id: "p2", title: "Viral vector delivery for genome editing", abstract: "AAV vector delivery enabled therapeutic editing but raised dose and immune safety constraints." })
+      ],
+      "CRISPR delivery methods",
+      2021,
+      2026
+    );
+    const methodology: SearchMethodology = {
+      generatedQueries: ["crispr delivery methods"],
+      sources: ["OpenAlex"],
+      dateRange: { startYear: 2021, endYear: 2026 },
+      includePreprints: false,
+      maxPapers: 5,
+      analysisDepth: "abstract-only",
+      notes: []
+    };
+    const synthesis = buildResearchSynthesis("CRISPR delivery methods", methodology, ranked);
+    const evidence = buildEvidenceTable(ranked, synthesis.themes);
+
+    expect(synthesis.themes.length).toBeGreaterThan(0);
+    expect(synthesis.keyTakeaways[0]).toContain("synthesised");
+    expect(evidence[0].supportingPaperIds.length).toBeGreaterThan(1);
   });
 });

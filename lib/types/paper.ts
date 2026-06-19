@@ -50,6 +50,28 @@ export type EvidenceClaim = {
   limitations: string;
 };
 
+export type ResearchTheme = {
+  id: string;
+  title: string;
+  headline: string;
+  summary: string;
+  supportingPaperIds: string[];
+  evidenceLevel: "Emerging" | "Moderate" | "Strong";
+  methods: string[];
+  implications: string[];
+  limitations: string[];
+};
+
+export type ResearchSynthesis = {
+  executiveAnswer: string;
+  keyTakeaways: string[];
+  themes: ResearchTheme[];
+  areasOfAgreement: string[];
+  uncertainties: string[];
+  researchGaps: string[];
+  nextSteps: string[];
+};
+
 export type DeckPreviewSlide = {
   id: string;
   eyebrow: string;
@@ -88,6 +110,7 @@ export type ResearchResult = {
   methodology: SearchMethodology;
   papers: Paper[];
   excludedPapers: ExcludedPaper[];
+  synthesis: ResearchSynthesis;
   evidenceTable: EvidenceClaim[];
   briefMarkdown: string;
   deckOutlineMarkdown: string;

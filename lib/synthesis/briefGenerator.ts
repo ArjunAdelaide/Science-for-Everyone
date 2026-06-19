@@ -1,4 +1,4 @@
-import type { EvidenceClaim, Paper, ResearchRequest, SearchMethodology } from "@/lib/types/paper";
+import type { EvidenceClaim, Paper, ResearchRequest, ResearchSynthesis, ResearchTheme, SearchMethodology } from "@/lib/types/paper";
 
 function cite(paper: Paper): string {
   const leadAuthor = paper.authors[0]?.split(" ").pop() || "Unknown";
@@ -13,7 +13,23 @@ function referenceLine(paper: Paper): string {
   return `- ${authors}. (${paper.year || "n.d."}). ${paper.title}. ${journal}.${doi} Source: ${paper.source}.`;
 }
 
-export function buildEvidenceTable(papers: Paper[]): EvidenceClaim[] {
+function confidenceForTheme(theme: ResearchTheme): EvidenceClaim["confidence"] {
+  if (theme.evidenceLevel === "Strong") return "High";
+  if (theme.evidenceLevel === "Moderate") return "Moderate";
+  return "Low";
+}
+
+export function buildEvidenceTable(papers: Paper[], themes?: ResearchTheme[]): EvidenceClaim[] {
+  if (themes && themes.length > 0) {
+    return themes.slice(0, 4).map((theme) => ({
+      claim: theme.headline,
+      supportingPaperIds: theme.supportingPaperIds,
+      confidence: confidenceForTheme(theme),
+      explanation: theme.summary,
+      limitations: theme.limitations.join(" ")
+    }));
+  }
+
   const top = papers.slice(0, 6);
 
   return top.slice(0, 3).map((paper) => ({
@@ -29,7 +45,8 @@ export function generateBriefMarkdown(
   request: ResearchRequest,
   methodology: SearchMethodology,
   papers: Paper[],
-  evidenceTable: EvidenceClaim[]
+  evidenceTable: EvidenceClaim[],
+  synthesis?: ResearchSynthesis
 ): string {
   const paperLines = papers
     .slice(0, request.maxPapers)
@@ -65,6 +82,18 @@ export function generateBriefMarkdown(
         )} |`
     )
     .join("\n");
+  const takeawayLines = (synthesis?.keyTakeaways || [])
+    .map((takeaway) => `- ${takeaway}`)
+    .join("\n");
+  const themeLines = (synthesis?.themes || [])
+    .map(
+      (theme, index) =>
+        `${index + 1}. **${theme.title}** (${theme.evidenceLevel}). ${theme.summary} Implications: ${theme.implications.join(" ")}`
+    )
+    .join("\n\n");
+  const agreementLines = (synthesis?.areasOfAgreement || []).map((item) => `- ${item}`).join("\n");
+  const uncertaintyLines = (synthesis?.uncertainties || []).map((item) => `- ${item}`).join("\n");
+  const gapLines = (synthesis?.researchGaps || []).map((item) => `- ${item}`).join("\n");
 
   return `# EzResearch Research Brief: ${request.question}
 
@@ -72,7 +101,9 @@ export function generateBriefMarkdown(
 ${request.question}
 
 ## Executive Summary
-This brief compresses retrieved scholarly metadata and abstracts into an evidence-grounded starting point for research review. It prioritises likely scholarly journal literature, ranks papers with transparent signals, and keeps citations tied to retrieved records.
+${synthesis?.executiveAnswer || "This brief compresses retrieved scholarly metadata and abstracts into an evidence-grounded starting point for research review. It prioritises likely scholarly journal literature, ranks papers with transparent signals, and keeps citations tied to retrieved records."}
+
+${takeawayLines || ""}
 
 ## Search Methodology
 - Sources searched: ${methodology.sources.join(", ")}
@@ -88,16 +119,22 @@ ${paperLines || "No papers were available after filtering."}
 ## Abstract-Derived Claims
 ${findingLines || "No evidence claims were generated."}
 
+## Synthesised Themes
+${themeLines || "No cross-paper themes were generated."}
+
 ## Evidence Table
 | Claim | Supporting papers | Confidence | Explanation | Limitations |
 |---|---|---|---|---|
 ${evidenceLines || "| No claim | No supporting papers | Low | No papers passed filters | Try a broader query |"}
 
 ## Areas of Agreement
-The strongest signals are papers with direct topical overlap, recent publication dates, stronger publication-type metadata, and available citation counts.
+${agreementLines || "The strongest signals are papers with direct topical overlap, recent publication dates, stronger publication-type metadata, and available citation counts."}
 
 ## Areas of Uncertainty or Disagreement
-This MVP does not resolve conflicting results across full methods, populations, interventions, or outcome measures. Treat abstract-only claims as directional until a full-text review is completed.
+${uncertaintyLines || "This MVP does not resolve conflicting results across full methods, populations, interventions, or outcome measures. Treat abstract-only claims as directional until a full-text review is completed."}
+
+## Research Gaps and Next Validation Steps
+${gapLines || "Full-text validation is required to identify methodological gaps, conflicting results, and missing evidence."}
 
 ## Limitations of the Analysis
 - Abstract-only analysis can miss methods, caveats, negative results, and subgroup findings from full text.

@@ -1,4 +1,4 @@
-import type { EvidenceClaim, Paper, ResearchRequest, SearchMethodology } from "@/lib/types/paper";
+import type { EvidenceClaim, Paper, ResearchRequest, ResearchSynthesis, SearchMethodology } from "@/lib/types/paper";
 
 function compactPaper(paper?: Paper): string {
   if (!paper) {
@@ -12,10 +12,12 @@ export function generateDeckOutlineMarkdown(
   request: ResearchRequest,
   methodology: SearchMethodology,
   papers: Paper[],
-  evidenceTable: EvidenceClaim[]
+  evidenceTable: EvidenceClaim[],
+  synthesis?: ResearchSynthesis
 ): string {
   const topPapers = papers.slice(0, 5);
   const claims = evidenceTable.slice(0, 3);
+  const themes = synthesis?.themes || [];
 
   return `# Slide Deck Outline: ${request.question}
 
@@ -25,7 +27,7 @@ export function generateDeckOutlineMarkdown(
 - Date range: ${methodology.dateRange.startYear}-${methodology.dateRange.endYear}
 
 ## 2. Why This Topic Matters
-- Frame the biomedical/life sciences importance of the question.
+- ${synthesis?.executiveAnswer || "Frame the biomedical/life sciences importance of the question."}
 - Note that this deck is based on retrieved abstracts and metadata, not full-text extraction.
 
 ## 3. Scope and Methodology
@@ -37,25 +39,30 @@ export function generateDeckOutlineMarkdown(
 ${topPapers.map((paper) => `- ${compactPaper(paper)} - score ${paper.score?.finalScore ?? "n/a"}/100`).join("\n")}
 
 ## 5. Key Finding 1
-- ${claims[0]?.claim || "No claim generated"}
+- ${themes[0]?.headline || claims[0]?.claim || "No claim generated"}
 - Evidence: ${(claims[0]?.supportingPaperIds || []).map((id) => compactPaper(papers.find((paper) => paper.id === id))).join("; ")}
+- Implication: ${themes[0]?.implications.join(" ") || "Validate the finding against full text before using it in a decision."}
 
 ## 6. Key Finding 2
-- ${claims[1]?.claim || "No second claim generated"}
+- ${themes[1]?.headline || claims[1]?.claim || "No second claim generated"}
 - Evidence: ${(claims[1]?.supportingPaperIds || []).map((id) => compactPaper(papers.find((paper) => paper.id === id))).join("; ")}
+- Implication: ${themes[1]?.implications.join(" ") || "Clarify whether this pattern holds across methods and populations."}
 
 ## 7. Key Finding 3
-- ${claims[2]?.claim || "No third claim generated"}
+- ${themes[2]?.headline || claims[2]?.claim || "No third claim generated"}
 - Evidence: ${(claims[2]?.supportingPaperIds || []).map((id) => compactPaper(papers.find((paper) => paper.id === id))).join("; ")}
+- Implication: ${themes[2]?.implications.join(" ") || "Treat the signal as directional until full-text validation is complete."}
 
 ## 8. Evidence Strength
 - High confidence claims require strong relevance, recent publication date, journal/review evidence type, and supporting papers.
 - Current confidence remains limited by abstract-only analysis.
 
 ## 9. Open Questions
-- Which findings persist after full-text review?
-- Which methods, models, populations, or outcome measures explain disagreement?
-- Are there major newer papers missing from PubMed/OpenAlex coverage?
+${(synthesis?.uncertainties || [
+  "Which findings persist after full-text review?",
+  "Which methods, models, populations, or outcome measures explain disagreement?",
+  "Are there major newer papers missing from PubMed/OpenAlex coverage?"
+]).map((item) => `- ${item}`).join("\n")}
 
 ## 10. References
 ${papers.slice(0, 10).map((paper) => `- ${compactPaper(paper)}${paper.doi ? `, DOI: ${paper.doi}` : ""}`).join("\n")}

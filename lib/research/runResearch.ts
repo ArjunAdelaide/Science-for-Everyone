@@ -9,6 +9,7 @@ import { rankPapers } from "@/lib/scoring/paperScore";
 import { buildEvidenceTable, generateBriefMarkdown } from "@/lib/synthesis/briefGenerator";
 import { generateDeckOutlineMarkdown } from "@/lib/synthesis/deckGenerator";
 import { buildDeckPreviewSlides } from "@/lib/synthesis/deckPreview";
+import { buildResearchSynthesis } from "@/lib/synthesis/researchSynthesis";
 import { mockPapers } from "@/lib/scholarly/mockPapers";
 
 function methodologyFor(request: ResearchRequest, generatedQueries: string[], notes: string[]): SearchMethodology {
@@ -98,15 +99,16 @@ export async function runResearch(request: ResearchRequest): Promise<ResearchRes
     "Key findings are abstract-derived and should be validated against full text before high-stakes use."
   ];
   const methodology = methodologyFor(request, generatedQueries, notes);
-  const evidenceTable = buildEvidenceTable(ranked);
-  const deckSlides = buildDeckPreviewSlides(request.question, methodology, ranked, evidenceTable);
+  const synthesis = buildResearchSynthesis(request.question, methodology, ranked);
+  const evidenceTable = buildEvidenceTable(ranked, synthesis.themes);
+  const deckSlides = buildDeckPreviewSlides(request.question, methodology, ranked, evidenceTable, synthesis);
   const briefMarkdown =
     request.outputType === "brief" || request.outputType === "both"
-      ? generateBriefMarkdown(request, methodology, ranked, evidenceTable)
+      ? generateBriefMarkdown(request, methodology, ranked, evidenceTable, synthesis)
       : "";
   const deckOutlineMarkdown =
     request.outputType === "deck" || request.outputType === "both"
-      ? generateDeckOutlineMarkdown(request, methodology, ranked, evidenceTable)
+      ? generateDeckOutlineMarkdown(request, methodology, ranked, evidenceTable, synthesis)
       : "";
 
   return {
@@ -115,6 +117,7 @@ export async function runResearch(request: ResearchRequest): Promise<ResearchRes
     methodology,
     papers: ranked,
     excludedPapers: filtered.excluded.slice(0, 20),
+    synthesis,
     evidenceTable,
     briefMarkdown,
     deckOutlineMarkdown,
