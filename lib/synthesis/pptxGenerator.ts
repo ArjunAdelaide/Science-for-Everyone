@@ -19,6 +19,15 @@ function truncate(text: string, maxLength: number): string {
   return text.length <= maxLength ? text : `${text.slice(0, maxLength - 3).trim()}...`;
 }
 
+function splitBullet(bullet: string): { label?: string; body: string } {
+  const match = bullet.match(/^([^:]{3,32}):\s(.+)$/);
+  if (!match) return { body: bullet };
+  return {
+    label: match[1],
+    body: match[2]
+  };
+}
+
 function addFooter(slide: Slide, page: number, footnote?: string) {
   slide.addText(footnote || "Abstract-only analysis; verify against full text before high-stakes use.", {
     x: 0.55,
@@ -122,9 +131,9 @@ function addPreviewSlide(pptx: Presentation, preview: DeckPreviewSlide, page: nu
     x: 0.58,
     y: 0.72,
     w: 11.7,
-    h: 0.78,
+    h: 0.88,
     fontFace: "Aptos Display",
-    fontSize: 24,
+    fontSize: 25,
     bold: true,
     color: COLORS.ink,
     fit: "shrink",
@@ -133,7 +142,7 @@ function addPreviewSlide(pptx: Presentation, preview: DeckPreviewSlide, page: nu
   if (preview.subtitle) {
     slide.addText(truncate(preview.subtitle, 125), {
       x: 0.6,
-      y: 1.38,
+      y: 1.48,
       w: 11.3,
       h: 0.3,
       fontSize: 10,
@@ -143,7 +152,7 @@ function addPreviewSlide(pptx: Presentation, preview: DeckPreviewSlide, page: nu
   }
   slide.addShape("line", {
     x: 0.55,
-    y: 1.78,
+    y: 1.9,
     w: 12.1,
     h: 0,
     line: { color: COLORS.line, width: 1 }
@@ -151,26 +160,29 @@ function addPreviewSlide(pptx: Presentation, preview: DeckPreviewSlide, page: nu
 
   slide.addShape("rect", {
     x: 0.6,
-    y: 2.0,
-    w: preview.citations.length > 0 ? 7.45 : 12.05,
-    h: 4.55,
+    y: 2.12,
+    w: preview.citations.length > 0 ? 7.55 : 12.05,
+    h: 4.35,
     fill: { color: COLORS.soft },
     line: { color: COLORS.line, width: 0.5 }
   });
   preview.bullets.slice(0, 6).forEach((bullet, index) => {
-    slide.addText(truncate(bullet, 150), {
+    const parsed = splitBullet(bullet);
+    const labelPrefix = parsed.label ? `${parsed.label.toUpperCase()}  ` : "";
+
+    slide.addText(`${labelPrefix}${truncate(parsed.body, 155)}`, {
       x: 0.88,
-      y: 2.28 + index * 0.62,
-      w: preview.citations.length > 0 ? 6.85 : 11.45,
+      y: 2.36 + index * 0.58,
+      w: preview.citations.length > 0 ? 6.95 : 11.45,
       h: 0.42,
-      fontSize: 11.3,
+      fontSize: parsed.label ? 10.9 : 11.2,
       color: COLORS.ink,
       fit: "shrink",
       margin: 0
     });
     slide.addShape("line", {
       x: 0.72,
-      y: 2.36 + index * 0.62,
+      y: 2.45 + index * 0.58,
       w: 0.07,
       h: 0,
       line: { color: COLORS.saffron, width: 2.2 }
@@ -179,16 +191,16 @@ function addPreviewSlide(pptx: Presentation, preview: DeckPreviewSlide, page: nu
 
   if (preview.citations.length > 0) {
     slide.addShape("rect", {
-      x: 8.22,
-      y: 2.0,
-      w: 4.05,
-      h: 4.55,
+      x: 8.3,
+      y: 2.12,
+      w: 3.95,
+      h: 4.35,
       fill: { color: "F1F5F9" },
       line: { color: COLORS.line, width: 0.5 }
     });
     slide.addText("CITATIONS", {
       x: 8.45,
-      y: 2.28,
+      y: 2.38,
       w: 1.4,
       h: 0.22,
       fontSize: 7.5,
@@ -199,7 +211,7 @@ function addPreviewSlide(pptx: Presentation, preview: DeckPreviewSlide, page: nu
     preview.citations.slice(0, 6).forEach((citation, index) => {
       slide.addText(truncate(citation, 108), {
         x: 8.45,
-        y: 2.68 + index * 0.52,
+        y: 2.78 + index * 0.48,
         w: 3.55,
         h: 0.34,
         fontSize: 7.8,

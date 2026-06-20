@@ -2,7 +2,7 @@
 
 Academic research intelligence for evidence-grounded briefs and decks.
 
-EzResearch is a Next.js MVP that turns a biomedical research topic, keyword, or question into a presentation-ready evidence deck with a compact sources column for auditability.
+EzResearch is a Next.js MVP that turns a biomedical research topic, keyword, or question into a presentation-ready evidence deck. The output is intentionally slide-first: the deck teaches the topic, explains recent findings, embeds source support, and keeps the PowerPoint download one click away.
 
 It is intentionally not a full systematic-review engine. The current product works from public scholarly metadata and abstracts, keeps claims tied to retrieved records, and makes limitations visible.
 
@@ -27,18 +27,19 @@ EzResearch explores a more trustworthy middle ground:
 - likely scholarly journal filtering
 - optional preprint inclusion
 - transparent paper scoring
-- deck-first results workspace with sources kept visible for auditability
-- slide-by-slide deck preview with answer-first headlines
-- downloadable editable `.pptx` deck via `pptxgenjs`, designed as a concise consulting-style evidence readout
+- optional OpenAI-powered expert synthesis layer for deeper topic explanation, paper-level insights, and presentation-ready finding slides
+- deck-first results workspace with source support embedded inside each slide
+- slide-by-slide deck preview with topic primer, scientific findings, implications, caveats, and references
+- tiny icon-based `.pptx` download control via `pptxgenjs`
 - explicit demo fallback records when live APIs fail, controlled by env var
 
 ## Demo Workflow
 
 1. Start from the landing page and enter a topic such as `CRISPR delivery methods` or `glioblastoma immunotherapy`.
 2. Generate the initial intelligence package.
-3. Refine date range, max papers, preprint setting, and output type from the results workspace.
-4. Review the generated deck with the source column visible.
-5. Download the PowerPoint deck.
+3. Review the generated deck as the primary output.
+4. Use the embedded source support on each slide to audit claims.
+5. Download the editable PowerPoint deck from the small icon control.
 
 ## Tech Stack
 
@@ -61,13 +62,9 @@ app/
 
 components/research/
   LandingHero.tsx
-  SearchPanel.tsx
-  SourcesColumn.tsx
-  RankedPapers.tsx
   DeckPreview.tsx
-  EvidenceTable.tsx
-  MarkdownOutputs.tsx
-  ExcludedRecords.tsx
+  LoadingState.tsx
+  types.ts
 
 lib/
   research/
@@ -86,6 +83,7 @@ lib/
     briefGenerator.ts            # Markdown report
     deckPreview.ts               # structured consulting-style slide preview model
     deckGenerator.ts             # text deck outline
+    expertSynthesis.ts           # optional OpenAI expert-agent synthesis layer
     pptxGenerator.ts             # PowerPoint export
   types/
     paper.ts                     # shared domain types
@@ -140,6 +138,8 @@ NCBI_API_KEY=
 NCBI_EMAIL=
 NCBI_TOOL=EzResearch
 OPENALEX_MAILTO=
+OPENAI_RESEARCH_MODEL=gpt-5.5
+EZRESEARCH_ENABLE_EXPERT_SYNTHESIS=true
 EZRESEARCH_ENABLE_MOCK_FALLBACK=true
 ```
 
@@ -148,6 +148,9 @@ Notes:
 - PubMed and OpenAlex can work without keys for the MVP.
 - NCBI recommends setting an email/tool name.
 - `NCBI_API_KEY` improves NCBI rate limits.
+- `OPENAI_API_KEY` in `.env.local` enables the optional expert-agent synthesis layer.
+- `OPENAI_RESEARCH_MODEL` controls the model used for expert synthesis.
+- Set `EZRESEARCH_ENABLE_EXPERT_SYNTHESIS=false` to force deterministic synthesis.
 - Set `EZRESEARCH_ENABLE_MOCK_FALLBACK=false` for strict live-data-only behavior.
 
 ## Deploying to Netlify
@@ -199,6 +202,8 @@ The test suite focuses on pure business logic:
 - filtering
 - scoring
 - evidence table and brief generation
+- deck slide generation
+- expert synthesis fallback boundaries
 
 Run:
 
@@ -212,8 +217,7 @@ Planned additions after the next product pass:
 
 - Premium landing page
 - Scientist-image landing backdrop
-- Deck preview cards
-- Sources column
+- Slide-first output workspace
 - PowerPoint export opened in Keynote/PowerPoint
 
 The landing page uses a lightweight mix of local archival-style assets and web-hosted scientist imagery. Replace web-hosted references with licensed local assets before a commercial launch.

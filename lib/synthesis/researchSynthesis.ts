@@ -3,26 +3,9 @@ import { extractKeywords } from "@/lib/scholarly/query";
 
 const THEME_DEFINITIONS = [
   {
-    id: "conceptual-landscape",
-    title: "Conceptual landscape",
-    presenterFrame: "Define the intellectual terrain before moving into individual papers.",
-    patterns: [
-      /framework/i,
-      /theory/i,
-      /model/i,
-      /mechanism/i,
-      /pathway/i,
-      /concept/i,
-      /landscape/i,
-      /overview/i,
-      /classification/i,
-      /taxonomy/i
-    ]
-  },
-  {
     id: "methods-and-measurement",
-    title: "Methods and measurement",
-    presenterFrame: "Explain how the field is producing evidence and where measurement choices matter.",
+    title: "Delivery platforms and experimental methods",
+    presenterFrame: "Explain which platforms are being tested and what each one is trying to solve.",
     patterns: [
       /method/i,
       /measurement/i,
@@ -44,8 +27,8 @@ const THEME_DEFINITIONS = [
   },
   {
     id: "findings-and-effects",
-    title: "Findings and effects",
-    presenterFrame: "Translate the strongest observed findings into a clear evidence storyline.",
+    title: "Observed editing effects and performance signals",
+    presenterFrame: "Translate the strongest observed effects into a clear evidence storyline.",
     patterns: [
       /efficacy/i,
       /efficiency/i,
@@ -62,7 +45,7 @@ const THEME_DEFINITIONS = [
   },
   {
     id: "constraints-and-risks",
-    title: "Constraints and risks",
+    title: "Safety, delivery constraints, and translation risk",
     presenterFrame: "Make caveats visible early so the deck sounds credible rather than overconfident.",
     patterns: [
       /safety/i,
@@ -79,7 +62,7 @@ const THEME_DEFINITIONS = [
   },
   {
     id: "application-and-translation",
-    title: "Application and translation",
+    title: "Therapeutic application and translational relevance",
     presenterFrame: "Connect the research record to where it may matter in practice.",
     patterns: [
       /application/i,
@@ -103,6 +86,20 @@ const THEME_DEFINITIONS = [
     title: "Review-level evidence and field synthesis",
     presenterFrame: "Use reviews and syntheses to separate field-level patterns from isolated studies.",
     patterns: [/review/i, /meta-analysis/i, /systematic/i, /landscape/i, /overview/i, /consensus/i]
+  },
+  {
+    id: "conceptual-landscape",
+    title: "Conceptual landscape",
+    presenterFrame: "Define the intellectual terrain before moving into individual papers.",
+    patterns: [
+      /framework/i,
+      /theory/i,
+      /mechanism/i,
+      /pathway/i,
+      /concept/i,
+      /classification/i,
+      /taxonomy/i
+    ]
   }
 ] as const;
 
@@ -110,6 +107,7 @@ const STOPWORDS = new Set([
   "about",
   "after",
   "analysis",
+  "article",
   "based",
   "between",
   "could",
@@ -120,10 +118,16 @@ const STOPWORDS = new Set([
   "into",
   "journal",
   "method",
+  "methods",
   "paper",
+  "papers",
+  "publication",
   "research",
+  "review",
   "result",
+  "results",
   "study",
+  "studies",
   "that",
   "their",
   "these",
@@ -134,8 +138,73 @@ const STOPWORDS = new Set([
   "what",
   "when",
   "where",
-  "which"
+  "which",
+  "abstract",
+  "available",
+  "current",
+  "field",
+  "significant",
+  "technology"
 ]);
+
+const SCIENTIFIC_SIGNAL_TERMS = [
+  "nanomaterial",
+  "lipid-based nanoparticle",
+  "lipid nanoparticle",
+  "polymeric nanoparticle",
+  "polymeric nanoparticles",
+  "lnp",
+  "ribonucleoprotein",
+  "rnp",
+  "viral vector",
+  "viral vectors",
+  "aav",
+  "lentiviral vector",
+  "extracellular vesicle",
+  "nanovesicle",
+  "polymeric nanoparticle",
+  "nanoparticle",
+  "non-viral delivery",
+  "in vivo",
+  "ex vivo",
+  "cas9",
+  "guide rna",
+  "base editing",
+  "prime editing",
+  "off-target",
+  "immune response",
+  "toxicity",
+  "dose",
+  "cargo",
+  "liver",
+  "lung",
+  "genome editing",
+  "genetic disease",
+  "therapeutic genome editing",
+  "clinical trial",
+  "systematic review",
+  "meta-analysis"
+];
+
+const THEME_SIGNAL_TERMS: Record<string, string[]> = {
+  "methods-and-measurement": [
+    "lipid nanoparticle",
+    "lnp",
+    "viral vector",
+    "viral vectors",
+    "aav",
+    "extracellular vesicle",
+    "nanovesicle",
+    "polymeric nanoparticle",
+    "ribonucleoprotein",
+    "rnp",
+    "non-viral delivery"
+  ],
+  "findings-and-effects": ["editing efficiency", "genome editing", "specificity", "potency", "in vivo", "low-toxicity", "scalable"],
+  "constraints-and-risks": ["toxicity", "immune response", "off-target", "dose", "cargo", "delivery efficiency", "barrier"],
+  "application-and-translation": ["therapeutic genome editing", "genetic disease", "in vivo", "ex vivo", "liver", "lung", "clinical trial"],
+  "evidence-synthesis": ["systematic review", "meta-analysis", "review", "consensus", "landscape"]
+};
 
 function textForPaper(paper: Paper): string {
   return `${paper.title} ${paper.abstract || ""} ${paper.publicationTypes.join(" ")} ${paper.journal || ""}`;
@@ -202,9 +271,28 @@ function commonMethods(papers: Paper[]): string[] {
     "animal model"
   ];
   const text = papers.map(textForPaper).join(" ").toLowerCase();
-  const matched = methodTerms.filter((term) => text.includes(term.toLowerCase()));
+  const matched = [...SCIENTIFIC_SIGNAL_TERMS, ...methodTerms].filter((term) => text.includes(term.toLowerCase()));
   const publicationTypes = papers.flatMap((paper) => paper.publicationTypes).filter(Boolean);
   return Array.from(new Set([...matched, ...publicationTypes])).slice(0, 4);
+}
+
+function scientificSignals(papers: Paper[], limit = 5): string[] {
+  const text = papers.map(textForPaper).join(" ").toLowerCase();
+  return SCIENTIFIC_SIGNAL_TERMS.filter((term) => text.includes(term.toLowerCase())).slice(0, limit);
+}
+
+function informativeMethod(paper: Paper): string {
+  if (paper.method && !/^Publication type metadata:/i.test(paper.method)) {
+    return paper.method;
+  }
+
+  return scientificSignals([paper], 4).join(", ") || "The abstract metadata does not specify a detailed experimental design.";
+}
+
+function themeSignals(themeId: string, papers: Paper[], question: string, limit = 4): string[] {
+  const text = papers.map(textForPaper).join(" ").toLowerCase();
+  const preferred = (THEME_SIGNAL_TERMS[themeId] || []).filter((term) => text.includes(term.toLowerCase()));
+  return (preferred.length ? preferred : scientificSignals(papers, limit).concat(topConcepts(papers, question))).slice(0, limit);
 }
 
 function topConcepts(papers: Paper[], question: string): string[] {
@@ -215,9 +303,9 @@ function topConcepts(papers: Paper[], question: string): string[] {
     .map(textForPaper)
     .join(" ")
     .toLowerCase()
-    .match(/\b[a-z][a-z-]{4,}\b/g)
+    .match(/\b[a-z][a-z]+(?:-[a-z]+)?\b/g)
     ?.forEach((word) => {
-      if (STOPWORDS.has(word) || queryWords.has(word)) return;
+      if (STOPWORDS.has(word) || queryWords.has(word) || word.endsWith("-")) return;
       counts.set(word, (counts.get(word) || 0) + 1);
     });
 
@@ -247,11 +335,13 @@ function topicLabel(question: string): string {
 function buildTopicPrimer(question: string, papers: Paper[]): TopicPrimer {
   const topic = topicLabel(question);
   const concepts = topConcepts(papers, question).slice(0, 8);
+  const signals = scientificSignals(papers, 6);
+  const coreTerms = signals.length ? signals : concepts;
   const focus = concepts.length
     ? [
-        `The retrieved literature repeatedly discusses ${formatConcepts(concepts.slice(0, 3))}.`,
-        `The strongest records frame the topic through ${formatConcepts(concepts.slice(3, 6))}.`,
-        "The deck treats these recurring terms as the starting map for the findings, not as a full ontology of the field."
+        `The retrieved literature repeatedly discusses ${formatConcepts(coreTerms.slice(0, 3))}.`,
+        `The strongest records frame the topic through ${formatConcepts(coreTerms.slice(3, 6))}.`,
+        "The deck treats these recurring terms as a source-grounded map of the abstracts, not a complete field ontology."
       ]
     : [
         "The retrieved literature is sparse or metadata-light, so the deck starts from the highest-scoring papers.",
@@ -260,8 +350,8 @@ function buildTopicPrimer(question: string, papers: Paper[]): TopicPrimer {
 
   return {
     topic,
-    overview: concepts.length
-      ? `${topic} is presented here as an active research area shaped by ${formatConcepts(concepts.slice(0, 4))}. The retrieved abstracts suggest the field is trying to understand how these pieces connect, which methods are most informative, and where the strongest recent evidence is accumulating.`
+    overview: coreTerms.length
+      ? `${topic} is presented here as an active research area shaped by ${formatConcepts(coreTerms.slice(0, 4))}. The retrieved abstracts suggest the field is focused on how delivery vehicles, editing cargo, biological targets, and safety constraints interact to determine whether genome editing can move from experimental systems toward reliable therapeutic use.`
       : `${topic} is presented here through the retrieved abstracts and metadata. The evidence base is too thin for a broad primer, so the deck focuses on the highest-scoring records and their directly stated claims.`,
     whyItMatters: /clinical|patient|therapy|therapeutic|disease|treatment|delivery|crispr|drug|vaccine|diagnos/i.test(
       `${question} ${papers.map(textForPaper).join(" ")}`
@@ -269,12 +359,30 @@ function buildTopicPrimer(question: string, papers: Paper[]): TopicPrimer {
       ? `This matters because decisions in biomedical research often depend on whether promising mechanisms, methods, or delivery approaches can translate from controlled studies into reliable biological or clinical impact.`
       : `This matters because the literature is moving faster than most readers can track manually; a useful presentation needs to compress the field into clear concepts, findings, and unresolved questions.`,
     currentFocus: focus,
-    keyTerms: concepts.slice(0, 8)
+    keyTerms: Array.from(new Set([...signals, ...concepts])).slice(0, 8)
   };
 }
 
 function papersForTheme(papers: Paper[], patterns: readonly RegExp[]): Paper[] {
   return papers.filter((paper) => patterns.some((pattern) => pattern.test(textForPaper(paper)))).slice(0, 5);
+}
+
+function strongestSentenceForTheme(papers: Paper[], queryKeywords: string[], patterns: readonly RegExp[]): string {
+  const sentences = papers
+    .flatMap((paper) => (paper.abstract || paper.keyFinding || paper.title).split(/(?<=[.!?])\s+/).map((sentence) => ({ sentence, paper })))
+    .map(({ sentence, paper }) => {
+      const lower = sentence.toLowerCase();
+      const keywordHits = queryKeywords.filter((keyword) => lower.includes(keyword.toLowerCase())).length;
+      const patternHits = patterns.filter((pattern) => pattern.test(sentence)).length;
+      const actionHits = /(improv|increase|decrease|reduce|show|demonstrat|suggest|enable|associate|identify|challenge|limit|toxicity|safety|immune)/i.test(sentence)
+        ? 1
+        : 0;
+      return { sentence: sentence.trim(), score: patternHits * 5 + keywordHits * 2 + actionHits + (paper.score?.finalScore || 0) / 100 };
+    })
+    .filter((item) => item.sentence.length > 32)
+    .sort((a, b) => b.score - a.score);
+
+  return sentences[0]?.sentence || strongestSentence(papers, queryKeywords);
 }
 
 function buildTheme(
@@ -283,8 +391,9 @@ function buildTheme(
   question: string
 ): ResearchTheme {
   const queryKeywords = extractKeywords(question);
-  const concepts = topConcepts(papers, question);
-  const leadSentence = strongestSentence(papers, queryKeywords);
+  const signals = scientificSignals(papers, 4);
+  const concepts = signals.length ? signals : topConcepts(papers, question);
+  const leadSentence = strongestSentenceForTheme(papers, queryKeywords, definition.patterns);
   const citations = papers.slice(0, 3).map(cite).join("; ");
   const evidenceLevel = confidenceFor(papers);
 
@@ -312,20 +421,21 @@ function buildTheme(
 }
 
 function findingTitleForTheme(theme: ResearchTheme, papers: Paper[], question: string): string {
-  const concepts = topConcepts(papers, question).slice(0, 3);
+  const signals = themeSignals(theme.id, papers, question, 3);
+  const concepts = (signals.length ? signals : topConcepts(papers, question)).slice(0, 3);
   const conceptPhrase = formatConcepts(concepts);
 
   if (theme.id === "methods-and-measurement") {
-    return `Research activity centres on ${conceptPhrase}`;
+    return `Delivery research is concentrating on ${conceptPhrase}`;
   }
   if (theme.id === "findings-and-effects") {
-    return `Reported effects cluster around ${conceptPhrase}`;
+    return `Reported editing effects cluster around ${conceptPhrase}`;
   }
   if (theme.id === "constraints-and-risks") {
-    return `The main caveats involve ${conceptPhrase}`;
+    return `Translation is constrained by ${conceptPhrase}`;
   }
   if (theme.id === "application-and-translation") {
-    return `Translation depends on ${conceptPhrase}`;
+    return `Therapeutic translation depends on ${conceptPhrase}`;
   }
   if (theme.id === "evidence-synthesis") {
     return `Review evidence is organising the field around ${conceptPhrase}`;
@@ -341,7 +451,8 @@ function buildFindingsFromThemes(question: string, themes: ResearchTheme[], pape
       .map((id) => papers.find((paper) => paper.id === id))
       .filter((paper): paper is Paper => Boolean(paper));
     const details = strongestSentences(supportingPapers, queryKeywords, 3);
-    const concepts = topConcepts(supportingPapers, question).slice(0, 4);
+    const signals = themeSignals(theme.id, supportingPapers, question, 4);
+    const concepts = (signals.length ? signals : topConcepts(supportingPapers, question)).slice(0, 4);
 
     return {
       id: `finding-${index + 1}`,
@@ -406,7 +517,7 @@ export function buildResearchSynthesis(
   const finalThemes = themes.length > 0 ? themes.slice(0, 4) : buildFallbackThemes(question, papers);
   const findings = buildFindingsFromThemes(question, finalThemes, papers);
   const topicPrimer = buildTopicPrimer(question, papers);
-  const topConceptList = topConcepts(papers, question);
+  const topConceptList = Array.from(new Set([...scientificSignals(papers, 5), ...topConcepts(papers, question)])).slice(0, 5);
   const topFinding = findings[0];
 
   return {
@@ -424,11 +535,11 @@ export function buildResearchSynthesis(
     paperInsights: papers.slice(0, 10).map((paper) => ({
       paperId: paper.id,
       roleInLiterature: paper.publicationTypes.join(", ") || "Retrieved scholarly record",
-      studyDesignOrApproach: paper.method || paper.publicationTypes.join(", ") || "Approach not available from metadata.",
+      studyDesignOrApproach: informativeMethod(paper),
       mainResult: paper.keyFinding || strongestSentence([paper], extractKeywords(question)),
       mechanismOrExplanation: paper.abstract ? truncate(paper.abstract, 220) : "Mechanism or explanation not available from abstract metadata.",
       limitations: paper.limitation || "Full-text review is required to confirm methods, endpoints, and caveats.",
-      presentableTakeaway: paper.relevanceToQuestion || paper.reasonIncluded || `Relevant source for ${topicPrimer.topic}.`
+      presentableTakeaway: paper.keyFinding || strongestSentence([paper], extractKeywords(question))
     })),
     synthesisMode: "deterministic",
     areasOfAgreement: findings.slice(0, 3).map((finding) => `${finding.title}: ${finding.takeaway}`),

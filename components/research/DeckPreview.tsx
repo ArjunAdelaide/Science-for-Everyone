@@ -7,86 +7,108 @@ type DeckPreviewProps = {
   deckDownload: DeckDownload | null;
   downloadingDeck: boolean;
   onDownload: () => void;
-  question: string;
   result: ResearchResult;
   slides: DeckPreviewSlide[];
 };
 
-export function DeckPreview({ deckDownload, downloadingDeck, onDownload, question, result, slides }: DeckPreviewProps) {
+function splitBullet(bullet: string): { label?: string; body: string } {
+  const match = bullet.match(/^([^:]{3,28}):\s(.+)$/);
+  if (!match) return { body: bullet };
+  return {
+    label: match[1],
+    body: match[2]
+  };
+}
+
+function DownloadIcon({ busy }: { busy: boolean }) {
+  if (busy) {
+    return <span className="block h-3.5 w-3.5 animate-spin rounded-full border border-white/40 border-t-white" />;
+  }
+
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
+    </svg>
+  );
+}
+
+export function DeckPreview({ deckDownload, downloadingDeck, onDownload, result, slides }: DeckPreviewProps) {
   if (slides.length === 0) return null;
 
   return (
-    <section className="min-h-[calc(100vh-40px)] border border-stone-300 bg-[#fbfaf7]">
-      <div className="sticky top-0 z-10 border-b border-stone-300 bg-[#fbfaf7]/95 px-5 py-4 backdrop-blur">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase text-signal">Presentation deck</p>
-            <h2 className="mt-1 text-2xl font-semibold leading-8 text-ink">{question}</h2>
-            <p className="mt-1 text-sm text-stone-600">
-              {slides.length} slides / {result.papers.length} sources / abstract-only, citation-grounded synthesis
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-signal disabled:cursor-not-allowed disabled:bg-stone-500"
-              disabled={downloadingDeck || result.papers.length === 0}
-              onClick={onDownload}
-              type="button"
-            >
-              {downloadingDeck ? "Building PPTX..." : "Download PPTX"}
-            </button>
-            {deckDownload ? (
-              <a
-                className="border border-ink bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-signal hover:text-signal"
-                download={deckDownload.fileName}
-                href={deckDownload.url}
-              >
-                Save generated deck
-              </a>
-            ) : null}
-          </div>
-        </div>
+    <section className="relative min-h-screen bg-[#f7f3ea] px-3 py-6 sm:px-6 lg:px-10">
+      <div className="fixed right-4 top-4 z-30 flex items-center gap-2">
+        {deckDownload ? (
+          <a
+            aria-label={`Download ${deckDownload.fileName}`}
+            className="grid h-9 w-9 place-items-center border border-ink/15 bg-white/80 text-ink shadow-sm backdrop-blur transition hover:border-ink hover:bg-white"
+            download={deckDownload.fileName}
+            href={deckDownload.url}
+            title="Download generated deck"
+          >
+            <DownloadIcon busy={false} />
+          </a>
+        ) : null}
+        <button
+          aria-label={downloadingDeck ? "Building PowerPoint deck" : "Download PowerPoint deck"}
+          className="grid h-9 w-9 place-items-center bg-ink text-white shadow-sm transition hover:bg-signal disabled:cursor-wait disabled:bg-stone-500"
+          disabled={downloadingDeck || result.papers.length === 0}
+          onClick={onDownload}
+          title={downloadingDeck ? "Building deck" : "Download PPTX"}
+          type="button"
+        >
+          <DownloadIcon busy={downloadingDeck} />
+        </button>
       </div>
 
-      <div className="grid gap-7 p-5 2xl:grid-cols-2">
+      <div className="mx-auto flex max-w-[1180px] flex-col gap-8">
         {slides.map((slide, index) => (
-          <article className="deck-slide aspect-video overflow-hidden border border-stone-300 bg-white shadow-sm" key={slide.id}>
-            <div className="flex h-full flex-col p-6">
-              <div className="flex items-start justify-between gap-5 border-b border-stone-200 pb-4">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase text-signal">{slide.eyebrow}</p>
-                  <h3 className="mt-2 text-[clamp(20px,2.1vw,30px)] font-semibold leading-tight text-ink">{slide.title}</h3>
-                  {slide.subtitle ? <p className="mt-2 text-sm leading-5 text-stone-600">{slide.subtitle}</p> : null}
+          <article className="deck-slide aspect-video overflow-hidden border border-stone-300 bg-white shadow-[0_18px_50px_rgba(17,24,39,0.08)]" key={slide.id}>
+            <div className="grid h-full grid-rows-[auto_1fr_auto] p-[clamp(18px,3vw,38px)]">
+              <div className="grid grid-cols-[1fr_auto] gap-6 border-b border-stone-200 pb-[clamp(12px,1.7vw,22px)]">
+                <div className="min-w-0">
+                  <p className="text-[clamp(9px,0.9vw,11px)] font-semibold uppercase tracking-[0.18em] text-signal">{slide.eyebrow}</p>
+                  <h3 className="mt-2 max-w-[920px] text-[clamp(22px,3.2vw,42px)] font-semibold leading-[1.04] text-ink">{slide.title}</h3>
+                  {slide.subtitle ? <p className="mt-3 max-w-[860px] text-[clamp(12px,1.2vw,16px)] leading-6 text-stone-600">{slide.subtitle}</p> : null}
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-stone-400">{String(index + 1).padStart(2, "0")}</span>
+                <span className="shrink-0 text-[clamp(12px,1.2vw,16px)] font-semibold text-stone-400">{String(index + 1).padStart(2, "0")}</span>
               </div>
 
-              <div className="grid min-h-0 flex-1 gap-5 py-5 md:grid-cols-[1.35fr_0.65fr]">
-                <ul className="space-y-3 overflow-hidden text-[clamp(12px,1vw,15px)] leading-6 text-stone-800">
-                  {slide.bullets.slice(0, 6).map((bullet) => (
-                    <li className="grid grid-cols-[14px_1fr] gap-3" key={bullet}>
-                      <span className="mt-2 h-1.5 w-1.5 bg-saffron" />
-                      <span>{bullet}</span>
+              <div className="grid min-h-0 gap-[clamp(16px,2.5vw,34px)] py-[clamp(14px,2.3vw,30px)] md:grid-cols-[1.42fr_0.58fr]">
+                <ul className="grid content-start gap-[clamp(8px,1.2vw,15px)] overflow-hidden">
+                  {slide.bullets.slice(0, 6).map((bullet, bulletIndex) => {
+                    const parsed = splitBullet(bullet);
+
+                    return (
+                    <li className="grid grid-cols-[12px_1fr] gap-3" key={`${slide.id}-${bulletIndex}`}>
+                      <span className="mt-[0.72em] h-1.5 w-1.5 bg-saffron" />
+                      <span className="text-[clamp(12px,1.18vw,16px)] leading-[1.45] text-stone-800">
+                        {parsed.label ? <span className="mr-2 text-[0.72em] font-semibold uppercase tracking-[0.12em] text-stone-500">{parsed.label}</span> : null}
+                        {parsed.body}
+                      </span>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
 
-                <div className="overflow-hidden border-l border-stone-200 pl-4">
-                  <p className="text-[10px] font-semibold uppercase text-stone-500">Source support</p>
+                <aside className="min-h-0 overflow-hidden border-l border-stone-200 pl-[clamp(12px,1.8vw,22px)]">
+                  <p className="text-[clamp(9px,0.8vw,11px)] font-semibold uppercase tracking-[0.16em] text-stone-500">Source support</p>
                   {slide.citations.length > 0 ? (
-                    <ul className="mt-3 space-y-2 text-[11px] leading-4 text-stone-600">
-                      {slide.citations.slice(0, 6).map((citation) => (
-                        <li key={citation}>{citation}</li>
+                    <ul className="mt-3 grid gap-2 text-[clamp(9px,0.88vw,12px)] leading-[1.35] text-stone-600">
+                      {slide.citations.slice(0, 6).map((citation, citationIndex) => (
+                        <li className="border-t border-stone-200 pt-2 first:border-t-0 first:pt-0" key={`${slide.id}-citation-${citationIndex}`}>{citation}</li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-3 text-[11px] leading-4 text-stone-500">Orientation slide; citations begin on evidence slides.</p>
+                    <p className="mt-3 text-[clamp(10px,0.9vw,12px)] leading-4 text-stone-500">Orientation slide. Evidence citations begin on finding slides.</p>
                   )}
-                </div>
+                </aside>
               </div>
 
-              <p className="border-t border-stone-200 pt-3 text-[11px] text-stone-500">
-                {slide.footnote || "Abstract-only analysis; verify against full text before high-stakes use."}
+              <p className="truncate border-t border-stone-200 pt-3 text-[clamp(9px,0.85vw,11px)] text-stone-500" title={slide.footnote || "Abstract-only analysis; verify against full text before high-stakes use."}>
+                {slide.footnote || "Abstract-only analysis; verify against full text before high-stakes use."} · {result.synthesis?.synthesisMode === "expert-agent" ? "Expert-agent synthesis" : "Deterministic synthesis"} · {result.papers.length} sources
               </p>
             </div>
           </article>

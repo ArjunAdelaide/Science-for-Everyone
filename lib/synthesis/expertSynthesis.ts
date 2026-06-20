@@ -28,6 +28,7 @@ type ExpertResponse = {
 
 const DEFAULT_MODEL = "gpt-5.5";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const EXPERT_SYNTHESIS_TIMEOUT_MS = 35_000;
 
 function expertSynthesisEnabled(): boolean {
   return Boolean(process.env.OPENAI_API_KEY) && process.env.EZRESEARCH_ENABLE_EXPERT_SYNTHESIS !== "false";
@@ -81,7 +82,9 @@ function buildExpertPrompt(question: string, methodology: SearchMethodology, pap
         "The output should teach an intelligent non-specialist what the topic is, why it matters, what recent papers appear to show, and what remains uncertain.",
         "Write like a publishable academic medical briefing: precise, explanatory, cautious, and useful for a presenter.",
         "Clearly preserve abstract-only limitations. If full-text methods/results are needed, say so.",
-        "Prefer mechanistic explanation and study design interpretation over generic validity language."
+        "Prefer mechanistic explanation and study design interpretation over generic validity language.",
+        "Avoid empty phrases such as 'more research is needed' unless you state exactly what needs validation.",
+        "For each finding, include at least one method/design detail and one scientific result or mechanism detail when the abstract supports it."
       ],
       agentRoles: {
         domainScientist:
@@ -113,9 +116,11 @@ function buildExpertPrompt(question: string, methodology: SearchMethodology, pap
             id: "finding-1",
             title: "assertive but cautious slide title",
             takeaway: "main finding in 1-2 sentences",
-            explanation: "how the evidence supports this finding",
+            explanation: "how the evidence supports this finding, including the biological/scientific logic",
             whyItMatters: "why this finding matters scientifically or clinically",
-            supportingDetails: ["2-4 concrete abstract-derived details"],
+            supportingDetails: [
+              "2-4 concrete abstract-derived details; each should state a method, study design, result, mechanism, population/model, endpoint, or limitation"
+            ],
             supportingPaperIds: ["paper ids only from supplied papers"],
             evidenceLevel: "Emerging | Moderate | Strong",
             limitations: ["specific limitation or validation need"]
@@ -361,8 +366,12 @@ async function callExpertModel(
   baseSynthesis: ResearchSynthesis,
   model: string
 ): Promise<ExpertResponse> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), EXPERT_SYNTHESIS_TIMEOUT_MS);
+
   const response = await fetch(OPENAI_RESPONSES_URL, {
     method: "POST",
+    signal: controller.signal,
     headers: {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       "Content-Type": "application/json"
@@ -389,7 +398,7 @@ async function callExpertModel(
         }
       }
     })
-  });
+  }).finally(() => clearTimeout(timeout));
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -429,6 +438,7 @@ export async function enhanceSynthesisWithExpertAgents(
         break;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error("Expert synthesis failed.");
+        if (lastError.name === "AbortError") break;
       }
     }
 

@@ -62,6 +62,22 @@ function findingPapers(finding: ResearchFinding, papers: Paper[]): Paper[] {
     .filter((paper): paper is Paper => Boolean(paper));
 }
 
+function scientificDetailsForFinding(finding: ResearchFinding, synthesis?: ResearchSynthesis): string[] {
+  const insights = (synthesis?.paperInsights || []).filter((insight) => finding.supportingPaperIds.includes(insight.paperId));
+  const detailSet = new Set<string>();
+
+  insights.slice(0, 3).forEach((insight) => {
+    if (insight.studyDesignOrApproach && !/^(article|journal article|review|Publication type metadata:.*)$/i.test(insight.studyDesignOrApproach.trim())) {
+      detailSet.add(`Method: ${truncate(insight.studyDesignOrApproach, 145)}`);
+    }
+    if (insight.mainResult) detailSet.add(`Result: ${truncate(insight.mainResult, 145)}`);
+    if (insight.mechanismOrExplanation) detailSet.add(`Mechanism: ${truncate(insight.mechanismOrExplanation, 145)}`);
+  });
+
+  finding.supportingDetails.slice(0, 3).forEach((detail) => detailSet.add(`Evidence detail: ${detail}`));
+  return Array.from(detailSet).slice(0, 2);
+}
+
 export function buildDeckPreviewSlides(
   question: string,
   methodology: SearchMethodology,
@@ -78,6 +94,7 @@ export function buildDeckPreviewSlides(
   const topClaim = findings[0]?.title || claims[0]?.claim;
   const findingSlides = findings.slice(0, 5).map((finding, index) => {
     const supportingPapers = findingPapers(finding, papers);
+    const scientificDetails = scientificDetailsForFinding(finding, synthesis);
 
     return {
       id: `finding-${index + 1}`,
@@ -85,11 +102,10 @@ export function buildDeckPreviewSlides(
       title: truncate(finding.title, 125),
       subtitle: `${finding.evidenceLevel} abstract-level signal based on ${supportingPapers.length} source${supportingPapers.length === 1 ? "" : "s"}`,
       bullets: [
-        `Finding: ${finding.takeaway}`,
-        `Interpretation: ${finding.explanation}`,
-        `Why it matters: ${finding.whyItMatters}`,
-        ...finding.supportingDetails.slice(0, 2).map((detail) => `Source detail: ${detail}`),
-        `Support: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
+        `Bottom line: ${finding.takeaway}`,
+        `Scientific interpretation: ${finding.explanation}`,
+        ...scientificDetails,
+        `Implication: ${finding.whyItMatters}`,
         `Caveat: ${finding.limitations[0]}`
       ],
       citations: supportingPapers.map(paperLabel),
@@ -97,42 +113,41 @@ export function buildDeckPreviewSlides(
     };
   });
   const themeSlides = themes.slice(0, 4).map((theme, index) => {
-        const supportingPapers = themePapers(theme, papers);
+    const supportingPapers = themePapers(theme, papers);
 
-        return {
-          id: `finding-${index + 1}`,
-          eyebrow: `Theme ${index + 1}`,
-          title: truncate(theme.headline, 125),
-          subtitle: `${theme.evidenceLevel} evidence signal based on ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
-          bullets: [
-            `What the evidence says: ${theme.summary}`,
-            `Why it matters: ${theme.implications.join(" ")}`,
-            `Methods/signals: ${theme.methods.join(", ") || "metadata varies across records"}.`,
-            `Support: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
-            `Limitation: ${theme.limitations.join(" ")}`
-          ],
-          citations: supportingPapers.map(paperLabel),
-          footnote: "Claim is generated only from retrieved abstract and metadata fields."
-        };
-      });
+    return {
+      id: `finding-${index + 1}`,
+      eyebrow: `Theme ${index + 1}`,
+      title: truncate(theme.headline, 125),
+      subtitle: `${theme.evidenceLevel} evidence signal based on ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
+      bullets: [
+        `Bottom line: ${theme.summary}`,
+        `Scientific interpretation: ${theme.implications.join(" ")}`,
+        `Method signal: ${theme.methods.join(", ") || "metadata varies across records"}.`,
+        `Support: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
+        `Caveat: ${theme.limitations.join(" ")}`
+      ],
+      citations: supportingPapers.map(paperLabel),
+      footnote: "Claim is generated only from retrieved abstract and metadata fields."
+    };
+  });
   const claimSlides = claims.map((claim, index) => {
-        const supportingPapers = claimPapers(claim, papers);
+    const supportingPapers = claimPapers(claim, papers);
 
-        return {
-          id: `finding-${index + 1}`,
-          eyebrow: `Finding ${index + 1}`,
-          title: truncate(claim.claim, 125),
-          subtitle: `${claim.confidence} confidence based on ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
-          bullets: [
-            `What the evidence says: ${claim.explanation}`,
-            `Support: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
-            `Presenter note: state this as an abstract-level signal, not a settled full-text conclusion.`,
-            `Limitation: ${claim.limitations}`
-          ],
-          citations: supportingPapers.map(paperLabel),
-          footnote: "Claim is generated only from retrieved abstract and metadata fields."
-        };
-      });
+    return {
+      id: `finding-${index + 1}`,
+      eyebrow: `Finding ${index + 1}`,
+      title: truncate(claim.claim, 125),
+      subtitle: `${claim.confidence} confidence based on ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
+      bullets: [
+        `Bottom line: ${claim.explanation}`,
+        `Support: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
+        `Caveat: ${claim.limitations}`
+      ],
+      citations: supportingPapers.map(paperLabel),
+      footnote: "Claim is generated only from retrieved abstract and metadata fields."
+    };
+  });
   const fallbackFindingSlides = findingSlides.length ? findingSlides : themeSlides.length ? themeSlides : claimSlides;
 
   return [
@@ -142,9 +157,9 @@ export function buildDeckPreviewSlides(
       title: truncate(question, 125),
       subtitle: `${methodology.dateRange.startYear}-${methodology.dateRange.endYear} | ${papers.length} sources analysed`,
       bullets: [
-        "A presentation-ready briefing on what the retrieved literature says.",
-        "Designed to teach the topic first, then show the evidence behind each finding.",
-        "All claims remain tied to retrieved paper metadata and abstracts."
+        "A presentation-ready academic briefing built from retrieved scholarly records.",
+        "The deck starts with topic context, then moves into scientific findings, implications, caveats, and references.",
+        "Every substantive point is grounded in the supplied paper metadata and abstracts."
       ],
       citations: []
     },
@@ -155,8 +170,8 @@ export function buildDeckPreviewSlides(
       subtitle: "Plain-language orientation for a non-specialist audience",
       bullets: [
         primer?.overview || "The retrieved papers define the topic through the highest-scoring abstracts and metadata.",
-        ...(primer?.currentFocus.slice(0, 3) || []),
-        primer?.keyTerms.length ? `Key terms to listen for: ${primer.keyTerms.slice(0, 6).join(", ")}.` : "Key terms were limited in the retrieved metadata."
+        ...(primer?.currentFocus.slice(0, 3).map((focus) => `Current research focus: ${focus}`) || []),
+        primer?.keyTerms.length ? `Key terms: ${primer.keyTerms.slice(0, 8).join(", ")}.` : "Key terms were limited in the retrieved metadata."
       ],
       citations: topPapers.slice(0, 3).map(paperLabel),
       footnote: "Primer is generated from retrieved titles, abstracts, publication types, and metadata."
@@ -167,12 +182,12 @@ export function buildDeckPreviewSlides(
       title: primer ? `Why ${primer.topic} matters now` : "Why this topic matters now",
       subtitle: "The practical reason to care about the literature",
       bullets: [
-        primer?.whyItMatters || "The literature is moving quickly, and the deck compresses the retrieved evidence into a presenter-friendly structure.",
-        `The current evidence base contains ${papers.length} ranked source${papers.length === 1 ? "" : "s"} from ${sourceMix(papers) || "available scholarly sources"}.`,
+        `Scientific significance: ${primer?.whyItMatters || "The literature is moving quickly, and the deck compresses the retrieved evidence into a presenter-friendly structure."}`,
+        `Evidence base: ${papers.length} ranked source${papers.length === 1 ? "" : "s"} from ${sourceMix(papers) || "available scholarly sources"}.`,
         findings[0]
-          ? `The strongest finding to start with: ${findings[0].title}.`
+          ? `Opening finding: ${findings[0].title}.`
           : "No strong finding was generated from the current evidence base.",
-        "The next slides explain the main findings before moving into methodology and limitations."
+        "The next slides explain the main findings before moving into caveats, methods, and references."
       ],
       citations: topPapers.slice(0, 3).map(paperLabel)
     },
@@ -185,8 +200,8 @@ export function buildDeckPreviewSlides(
       subtitle: "The one-slide answer before the detail",
       bullets: [
         synthesis?.executiveAnswer || `${papers.length} likely scholarly records were analysed after deduplication, preprint filtering, and transparent scoring.`,
-        ...(synthesis?.keyTakeaways.slice(0, 2) || []),
-        "The following finding slides unpack what this means in practical terms."
+        ...(synthesis?.keyTakeaways.slice(0, 3).map((takeaway) => `Takeaway: ${takeaway}`) || []),
+        "The following finding slides unpack the scientific logic behind the answer."
       ],
       citations: topPapers.slice(0, 3).map(paperLabel),
       footnote: "Takeaway is constrained to retrieved metadata and abstracts."

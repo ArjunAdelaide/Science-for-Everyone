@@ -1,10 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { DeckPreview } from "@/components/research/DeckPreview";
 import { LandingHero } from "@/components/research/LandingHero";
 import { LoadingState } from "@/components/research/LoadingState";
-import { SourcesColumn } from "@/components/research/SourcesColumn";
 import type { DeckDownload, ResearchFormState } from "@/components/research/types";
 import type { ResearchResult } from "@/lib/types/paper";
 
@@ -24,12 +23,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [downloadingDeck, setDownloadingDeck] = useState(false);
   const [deckDownload, setDeckDownload] = useState<DeckDownload | null>(null);
-
-  const averageScore = useMemo(() => {
-    if (!result?.papers.length) return 0;
-    const total = result.papers.reduce((sum, paper) => sum + (paper.score?.finalScore || 0), 0);
-    return Math.round(total / result.papers.length);
-  }, [result]);
 
   useEffect(() => {
     return () => {
@@ -121,25 +114,18 @@ export default function Home() {
     !result ? (
       <LandingHero error={error} form={form} loading={loading} onChange={setForm} onSubmit={runResearch} />
     ) : (
-    <main className="min-h-screen bg-[#f4efe3] text-ink">
-      <div className="mx-auto grid max-w-[1500px] gap-5 px-5 py-5 lg:grid-cols-[340px_1fr]">
-        <SourcesColumn averageScore={averageScore} papers={result.papers} result={result} />
-
-        <section className="order-1 lg:order-2">
-          {loading ? (
-            <LoadingState />
-          ) : (
-            <DeckPreview
-              deckDownload={deckDownload}
-              downloadingDeck={downloadingDeck}
-              onDownload={downloadDeck}
-              question={result.question}
-              result={result}
-              slides={result.deckSlides}
-            />
-          )}
-        </section>
-      </div>
+    <main className="min-h-screen bg-[#f7f3ea] text-ink">
+      {loading ? (
+        <LoadingState />
+      ) : (
+        <DeckPreview
+          deckDownload={deckDownload}
+          downloadingDeck={downloadingDeck}
+          onDownload={downloadDeck}
+          result={result}
+          slides={result.deckSlides}
+        />
+      )}
     </main>
     )
   );
