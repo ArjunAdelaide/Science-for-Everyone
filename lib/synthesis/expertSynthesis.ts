@@ -26,7 +26,7 @@ type ExpertResponse = {
   nextSteps: string[];
 };
 
-const DEFAULT_MODEL = "gpt-5.5";
+const DEFAULT_MODEL = "gpt-4.1";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const EXPERT_SYNTHESIS_TIMEOUT_MS = 35_000;
 
@@ -39,7 +39,7 @@ function modelName(): string {
 }
 
 function candidateModels(): string[] {
-  return Array.from(new Set([modelName(), "gpt-5", "gpt-4.1"].filter(Boolean)));
+  return Array.from(new Set([modelName(), "gpt-4.1", "gpt-4.1-mini", "gpt-5"].filter(Boolean)));
 }
 
 function truncate(text: string | undefined, maxLength: number): string {
@@ -59,7 +59,7 @@ function paperForPrompt(paper: Paper, index: number) {
     publicationTypes: paper.publicationTypes,
     citationCount: paper.citationCount || null,
     likelyPeerReviewed: paper.likelyPeerReviewed || false,
-    abstract: truncate(paper.abstract, 1800),
+    abstract: truncate(paper.abstract, 1050),
     score: paper.score
       ? {
           finalScore: paper.score.finalScore,
@@ -70,7 +70,7 @@ function paperForPrompt(paper: Paper, index: number) {
 }
 
 function buildExpertPrompt(question: string, methodology: SearchMethodology, papers: Paper[], baseSynthesis: ResearchSynthesis): string {
-  const promptPapers = papers.slice(0, 12).map(paperForPrompt);
+  const promptPapers = papers.slice(0, 8).map(paperForPrompt);
 
   return JSON.stringify(
     {
@@ -97,8 +97,7 @@ function buildExpertPrompt(question: string, methodology: SearchMethodology, pap
       methodology,
       deterministicBaseline: {
         topicPrimer: baseSynthesis.topicPrimer,
-        themes: baseSynthesis.themes,
-        findings: baseSynthesis.findings
+        findings: baseSynthesis.findings.slice(0, 4)
       },
       papers: promptPapers,
       requiredOutputShape: {
@@ -389,6 +388,7 @@ async function callExpertModel(
           content: buildExpertPrompt(question, methodology, papers, baseSynthesis)
         }
       ],
+      max_output_tokens: 3200,
       text: {
         format: {
           type: "json_schema",

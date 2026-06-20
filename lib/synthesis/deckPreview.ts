@@ -157,9 +157,9 @@ export function buildDeckPreviewSlides(
       title: truncate(question, 125),
       subtitle: `${methodology.dateRange.startYear}-${methodology.dateRange.endYear} | ${papers.length} sources analysed`,
       bullets: [
-        "A presentation-ready academic briefing built from retrieved scholarly records.",
-        "The deck starts with topic context, then moves into scientific findings, implications, caveats, and references.",
-        "Every substantive point is grounded in the supplied paper metadata and abstracts."
+        primer?.whyItMatters || "This topic matters because the retrieved literature points to active scientific or clinical uncertainty.",
+        findings[0] ? `Central thesis: ${findings[0].title}.` : "Central thesis: the retrieved evidence is too sparse for a strong source-backed answer.",
+        synthesis?.keyTakeaways[0] || `${papers.length} ranked scholarly records form the evidence base for this briefing.`
       ],
       citations: []
     },
@@ -187,7 +187,9 @@ export function buildDeckPreviewSlides(
         findings[0]
           ? `Opening finding: ${findings[0].title}.`
           : "No strong finding was generated from the current evidence base.",
-        "The next slides explain the main findings before moving into caveats, methods, and references."
+        synthesis?.areasOfAgreement[0]
+          ? `Early consensus signal: ${synthesis.areasOfAgreement[0]}`
+          : "The evidence should be treated as directional until full-text review validates methods and outcomes."
       ],
       citations: topPapers.slice(0, 3).map(paperLabel)
     },
@@ -201,7 +203,9 @@ export function buildDeckPreviewSlides(
       bullets: [
         synthesis?.executiveAnswer || `${papers.length} likely scholarly records were analysed after deduplication, preprint filtering, and transparent scoring.`,
         ...(synthesis?.keyTakeaways.slice(0, 3).map((takeaway) => `Takeaway: ${takeaway}`) || []),
-        "The following finding slides unpack the scientific logic behind the answer."
+        synthesis?.uncertainties[0]
+          ? `Critical caveat: ${synthesis.uncertainties[0]}`
+          : "Critical caveat: abstract-only analysis cannot replace full-text methods review."
       ],
       citations: topPapers.slice(0, 3).map(paperLabel),
       footnote: "Takeaway is constrained to retrieved metadata and abstracts."

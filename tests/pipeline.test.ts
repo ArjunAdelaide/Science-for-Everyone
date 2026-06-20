@@ -111,6 +111,8 @@ describe("paper processing", () => {
     expect(synthesis.topicPrimer.overview.toLowerCase()).toContain("crispr delivery");
     expect(synthesis.findings[0].takeaway).toContain("delivery");
     expect(slides.map((slide) => slide.id)).toEqual(expect.arrayContaining(["topic-primer", "why-it-matters", "finding-1"]));
+    expect(slides[0].bullets.join(" ")).not.toMatch(/presentation-ready|deck starts|following finding slides/i);
+    expect(slides.find((slide) => slide.id === "finding-1")?.bullets.join(" ")).toMatch(/lipid|viral|editing|safety/i);
     expect(evidence[0].supportingPaperIds.length).toBeGreaterThan(1);
   });
 });
