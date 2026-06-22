@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { ResearchRequest, ResearchResult } from "@/lib/types/paper";
 import { runResearch } from "@/lib/research/runResearch";
 import { parseResearchRequest } from "@/lib/research/validation";
+import { storeDeckDownload } from "@/lib/synthesis/deckDownloadStore";
 import { generateResearchDeckBuffer } from "@/lib/synthesis/pptxGenerator";
 
 export const runtime = "nodejs";
@@ -43,11 +44,29 @@ export async function POST(request: Request) {
       ? body.result
       : await runResearch(parseResearchRequest(body.request || body));
     const buffer = await generateResearchDeckBuffer(result);
+    const fileName = fileNameFor(result.question);
+
+    if (new URL(request.url).searchParams.get("delivery") === "link") {
+      const id = storeDeckDownload(buffer, fileName);
+
+      return NextResponse.json(
+        {
+          byteLength: buffer.byteLength,
+          downloadUrl: `/api/research/deck/download?id=${encodeURIComponent(id)}`,
+          fileName
+        },
+        {
+          headers: {
+            "Cache-Control": "no-store"
+          }
+        }
+      );
+    }
 
     return new Response(buffer, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "Content-Disposition": `attachment; filename="${fileNameFor(result.question)}"`,
+        "Content-Disposition": `attachment; filename="${fileName}"`,
         "Content-Length": String(buffer.byteLength)
       }
     });

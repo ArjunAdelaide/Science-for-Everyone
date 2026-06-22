@@ -161,19 +161,19 @@ function addPreviewSlide(pptx: Presentation, preview: DeckPreviewSlide, page: nu
   slide.addShape("rect", {
     x: 0.6,
     y: 2.12,
-    w: preview.citations.length > 0 ? 7.55 : 12.05,
+    w: 12.05,
     h: 4.35,
     fill: { color: COLORS.soft },
     line: { color: COLORS.line, width: 0.5 }
   });
-  preview.bullets.slice(0, 6).forEach((bullet, index) => {
+  preview.bullets.slice(0, 5).forEach((bullet, index) => {
     const parsed = splitBullet(bullet);
     const labelPrefix = parsed.label ? `${parsed.label.toUpperCase()}  ` : "";
 
-    slide.addText(`${labelPrefix}${truncate(parsed.body, 155)}`, {
+    slide.addText(`${labelPrefix}${truncate(parsed.body, 175)}`, {
       x: 0.88,
       y: 2.36 + index * 0.58,
-      w: preview.citations.length > 0 ? 6.95 : 11.45,
+      w: 11.45,
       h: 0.42,
       fontSize: parsed.label ? 10.9 : 11.2,
       color: COLORS.ink,
@@ -188,39 +188,6 @@ function addPreviewSlide(pptx: Presentation, preview: DeckPreviewSlide, page: nu
       line: { color: COLORS.saffron, width: 2.2 }
     });
   });
-
-  if (preview.citations.length > 0) {
-    slide.addShape("rect", {
-      x: 8.3,
-      y: 2.12,
-      w: 3.95,
-      h: 4.35,
-      fill: { color: "F1F5F9" },
-      line: { color: COLORS.line, width: 0.5 }
-    });
-    slide.addText("CITATIONS", {
-      x: 8.45,
-      y: 2.38,
-      w: 1.4,
-      h: 0.22,
-      fontSize: 7.5,
-      bold: true,
-      color: COLORS.stone,
-      margin: 0
-    });
-    preview.citations.slice(0, 6).forEach((citation, index) => {
-      slide.addText(truncate(citation, 108), {
-        x: 8.45,
-        y: 2.78 + index * 0.48,
-        w: 3.55,
-        h: 0.34,
-        fontSize: 7.8,
-        color: COLORS.stone,
-        fit: "shrink",
-        margin: 0
-      });
-    });
-  }
 
   addFooter(slide, page, preview.footnote);
 }

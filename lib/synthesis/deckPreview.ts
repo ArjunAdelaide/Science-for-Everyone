@@ -78,6 +78,11 @@ function scientificDetailsForFinding(finding: ResearchFinding, synthesis?: Resea
   return Array.from(detailSet).slice(0, 2);
 }
 
+function sourceRole(paper: Paper): string {
+  const reason = paper.reasonIncluded || paper.score?.explanation[0] || paper.abstract || paper.title;
+  return truncate(reason, 118);
+}
+
 export function buildDeckPreviewSlides(
   question: string,
   methodology: SearchMethodology,
@@ -103,12 +108,11 @@ export function buildDeckPreviewSlides(
       subtitle: `${finding.evidenceLevel} abstract-level signal based on ${supportingPapers.length} source${supportingPapers.length === 1 ? "" : "s"}`,
       bullets: [
         `Bottom line: ${finding.takeaway}`,
-        `Scientific interpretation: ${finding.explanation}`,
-        ...scientificDetails,
+        scientificDetails[0] || `Evidence: ${truncate(finding.explanation, 145)}`,
         `Implication: ${finding.whyItMatters}`,
         `Caveat: ${finding.limitations[0]}`
       ],
-      citations: supportingPapers.map(paperLabel),
+      citations: [],
       footnote: "Claim is generated only from retrieved abstract and metadata fields."
     };
   });
@@ -122,12 +126,11 @@ export function buildDeckPreviewSlides(
       subtitle: `${theme.evidenceLevel} evidence signal based on ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
       bullets: [
         `Bottom line: ${theme.summary}`,
-        `Scientific interpretation: ${theme.implications.join(" ")}`,
-        `Method signal: ${theme.methods.join(", ") || "metadata varies across records"}.`,
-        `Support: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
+        `Evidence: ${theme.methods.join(", ") || "metadata varies across records"}.`,
+        `Implication: ${theme.implications.slice(0, 2).join(" ")}`,
         `Caveat: ${theme.limitations.join(" ")}`
       ],
-      citations: supportingPapers.map(paperLabel),
+      citations: [],
       footnote: "Claim is generated only from retrieved abstract and metadata fields."
     };
   });
@@ -141,10 +144,10 @@ export function buildDeckPreviewSlides(
       subtitle: `${claim.confidence} confidence based on ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
       bullets: [
         `Bottom line: ${claim.explanation}`,
-        `Support: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
+        `Evidence: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
         `Caveat: ${claim.limitations}`
       ],
-      citations: supportingPapers.map(paperLabel),
+      citations: [],
       footnote: "Claim is generated only from retrieved abstract and metadata fields."
     };
   });
@@ -170,10 +173,10 @@ export function buildDeckPreviewSlides(
       subtitle: "Plain-language orientation for a non-specialist audience",
       bullets: [
         primer?.overview || "The retrieved papers define the topic through the highest-scoring abstracts and metadata.",
-        ...(primer?.currentFocus.slice(0, 3).map((focus) => `Current research focus: ${focus}`) || []),
+        ...(primer?.currentFocus.slice(0, 2).map((focus) => `Current focus: ${focus}`) || []),
         primer?.keyTerms.length ? `Key terms: ${primer.keyTerms.slice(0, 8).join(", ")}.` : "Key terms were limited in the retrieved metadata."
       ],
-      citations: topPapers.slice(0, 3).map(paperLabel),
+      citations: [],
       footnote: "Primer is generated from retrieved titles, abstracts, publication types, and metadata."
     },
     {
@@ -186,12 +189,9 @@ export function buildDeckPreviewSlides(
         `Evidence base: ${papers.length} ranked source${papers.length === 1 ? "" : "s"} from ${sourceMix(papers) || "available scholarly sources"}.`,
         findings[0]
           ? `Opening finding: ${findings[0].title}.`
-          : "No strong finding was generated from the current evidence base.",
-        synthesis?.areasOfAgreement[0]
-          ? `Early consensus signal: ${synthesis.areasOfAgreement[0]}`
-          : "The evidence should be treated as directional until full-text review validates methods and outcomes."
+          : "No strong finding was generated from the current evidence base."
       ],
-      citations: topPapers.slice(0, 3).map(paperLabel)
+      citations: []
     },
     {
       id: "executive-takeaway",
@@ -202,33 +202,27 @@ export function buildDeckPreviewSlides(
       subtitle: "The one-slide answer before the detail",
       bullets: [
         synthesis?.executiveAnswer || `${papers.length} likely scholarly records were analysed after deduplication, preprint filtering, and transparent scoring.`,
-        ...(synthesis?.keyTakeaways.slice(0, 3).map((takeaway) => `Takeaway: ${takeaway}`) || []),
+        ...(synthesis?.keyTakeaways.slice(0, 2).map((takeaway) => `Takeaway: ${takeaway}`) || []),
         synthesis?.uncertainties[0]
           ? `Critical caveat: ${synthesis.uncertainties[0]}`
           : "Critical caveat: abstract-only analysis cannot replace full-text methods review."
       ],
-      citations: topPapers.slice(0, 3).map(paperLabel),
+      citations: [],
       footnote: "Takeaway is constrained to retrieved metadata and abstracts."
     },
     ...fallbackFindingSlides,
     {
-      id: "paper-insights",
-      eyebrow: "Key papers in context",
-      title: "What the most useful papers contribute to the story",
-      subtitle: synthesis?.synthesisMode === "expert-agent" ? "Expert-agent interpretation of retrieved abstracts" : "Abstract-derived source interpretation",
+      id: "source-map",
+      eyebrow: "Source map",
+      title: "Which papers support the story",
+      subtitle: "Use this slide for citation backup, not as presentation narration",
       bullets: paperInsights.length
-        ? paperInsights.slice(0, 5).map((insight) => {
+        ? paperInsights.slice(0, 5).map((insight, index) => {
             const paper = papers.find((candidate) => candidate.id === insight.paperId);
-            return `${cite(paper)}: ${truncate(insight.presentableTakeaway || insight.mainResult, 145)}`;
+            return `${index + 1}. ${cite(paper)} - ${truncate(insight.presentableTakeaway || insight.mainResult, 138)}`;
           })
-        : topPapers.map((paper) => `${cite(paper)}: ${truncate(paper.reasonIncluded || paper.abstract || paper.title, 145)}`),
-      citations: paperInsights.length
-        ? paperInsights
-            .slice(0, 5)
-            .map((insight) => papers.find((paper) => paper.id === insight.paperId))
-            .filter((paper): paper is Paper => Boolean(paper))
-            .map(paperLabel)
-        : topPapers.map(paperLabel),
+        : topPapers.slice(0, 5).map((paper, index) => `${index + 1}. ${cite(paper)} - ${sourceRole(paper)}`),
+      citations: [],
       footnote: "Paper roles are constrained to retrieved abstract and metadata fields."
     },
     {
@@ -240,7 +234,7 @@ export function buildDeckPreviewSlides(
         (paper) =>
           `${paper.score?.finalScore ?? "n/a"}/100 - ${truncate(paper.title, 86)} (${paper.year || "n.d."})`
       ),
-      citations: topPapers.map(paperLabel)
+      citations: []
     },
     {
       id: "what-to-watch",
@@ -258,7 +252,7 @@ export function buildDeckPreviewSlides(
         "Which methods, models, populations, or outcome measures explain disagreement?",
         "Which findings are mature enough for decisions, and which are still early signals?"
       ],
-      citations: topPapers.slice(0, 3).map(paperLabel)
+      citations: []
     },
     {
       id: "methodology",
@@ -293,8 +287,8 @@ export function buildDeckPreviewSlides(
       id: "references",
       eyebrow: "References",
       title: "Retrieved paper metadata used in this deck",
-      bullets: papers.slice(0, 8).map((paper, index) => `${index + 1}. ${paperLabel(paper)}${paper.doi ? ` DOI: ${paper.doi}` : ""}`),
-      citations: papers.slice(0, 8).map(paperLabel),
+      bullets: papers.slice(0, 5).map((paper, index) => `${index + 1}. ${paperLabel(paper)}${paper.doi ? ` DOI: ${paper.doi}` : ""}`),
+      citations: [],
       footnote: "References are generated only from retrieved metadata."
     }
   ];

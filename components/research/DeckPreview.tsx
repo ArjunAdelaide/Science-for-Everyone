@@ -43,24 +43,27 @@ export function DeckPreview({ deckDownload, downloadingDeck, onDownload, result,
         {deckDownload ? (
           <a
             aria-label={`Download ${deckDownload.fileName}`}
-            className="grid h-9 w-9 place-items-center border border-ink/15 bg-white/80 text-ink shadow-sm backdrop-blur transition hover:border-ink hover:bg-white"
+            className="inline-flex h-9 items-center gap-2 border border-ink/15 bg-white/85 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-ink shadow-sm backdrop-blur transition hover:border-ink hover:bg-white"
             download={deckDownload.fileName}
             href={deckDownload.url}
             title="Download generated deck"
           >
             <DownloadIcon busy={false} />
+            PPTX ready
           </a>
-        ) : null}
-        <button
-          aria-label={downloadingDeck ? "Building PowerPoint deck" : "Download PowerPoint deck"}
-          className="grid h-9 w-9 place-items-center bg-ink text-white shadow-sm transition hover:bg-signal disabled:cursor-wait disabled:bg-stone-500"
-          disabled={downloadingDeck || result.papers.length === 0}
-          onClick={onDownload}
-          title={downloadingDeck ? "Building deck" : "Download PPTX"}
-          type="button"
-        >
-          <DownloadIcon busy={downloadingDeck} />
-        </button>
+        ) : (
+          <button
+            aria-label={downloadingDeck ? "Building PowerPoint deck" : "Download PowerPoint deck"}
+            className="inline-flex h-9 items-center gap-2 bg-ink px-3 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-signal disabled:cursor-wait disabled:bg-stone-500"
+            disabled={downloadingDeck || slides.length === 0}
+            onClick={onDownload}
+            title={downloadingDeck ? "Building deck" : "Download PPTX"}
+            type="button"
+          >
+            <DownloadIcon busy={downloadingDeck} />
+            {downloadingDeck ? "Building" : "Download PPTX"}
+          </button>
+        )}
       </div>
 
       <div className="mx-auto flex max-w-[1180px] flex-col gap-8">
@@ -76,15 +79,15 @@ export function DeckPreview({ deckDownload, downloadingDeck, onDownload, result,
                 <span className="shrink-0 text-[clamp(12px,1.2vw,16px)] font-semibold text-stone-400">{String(index + 1).padStart(2, "0")}</span>
               </div>
 
-              <div className="grid min-h-0 gap-[clamp(16px,2.5vw,34px)] py-[clamp(14px,2.3vw,30px)] md:grid-cols-[1.42fr_0.58fr]">
-                <ul className="grid content-start gap-[clamp(8px,1.2vw,15px)] overflow-hidden">
-                  {slide.bullets.slice(0, 6).map((bullet, bulletIndex) => {
+              <div className="min-h-0 py-[clamp(14px,2.3vw,28px)]">
+                <ul className="grid content-start gap-[clamp(8px,1.1vw,14px)] overflow-hidden">
+                  {slide.bullets.slice(0, 5).map((bullet, bulletIndex) => {
                     const parsed = splitBullet(bullet);
 
                     return (
                     <li className="grid grid-cols-[12px_1fr] gap-3" key={`${slide.id}-${bulletIndex}`}>
                       <span className="mt-[0.72em] h-1.5 w-1.5 bg-saffron" />
-                      <span className="text-[clamp(12px,1.18vw,16px)] leading-[1.45] text-stone-800">
+                      <span className="text-[clamp(12px,1.08vw,15px)] leading-[1.38] text-stone-800">
                         {parsed.label ? <span className="mr-2 text-[0.72em] font-semibold uppercase tracking-[0.12em] text-stone-500">{parsed.label}</span> : null}
                         {parsed.body}
                       </span>
@@ -92,19 +95,6 @@ export function DeckPreview({ deckDownload, downloadingDeck, onDownload, result,
                     );
                   })}
                 </ul>
-
-                <aside className="min-h-0 overflow-hidden border-l border-stone-200 pl-[clamp(12px,1.8vw,22px)]">
-                  <p className="text-[clamp(9px,0.8vw,11px)] font-semibold uppercase tracking-[0.16em] text-stone-500">Source support</p>
-                  {slide.citations.length > 0 ? (
-                    <ul className="mt-3 grid gap-2 text-[clamp(9px,0.88vw,12px)] leading-[1.35] text-stone-600">
-                      {slide.citations.slice(0, 6).map((citation, citationIndex) => (
-                        <li className="border-t border-stone-200 pt-2 first:border-t-0 first:pt-0" key={`${slide.id}-citation-${citationIndex}`}>{citation}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-3 text-[clamp(10px,0.9vw,12px)] leading-4 text-stone-500">Orientation slide. Evidence citations begin on finding slides.</p>
-                  )}
-                </aside>
               </div>
 
               <p className="truncate border-t border-stone-200 pt-3 text-[clamp(9px,0.85vw,11px)] text-stone-500" title={slide.footnote || "Abstract-only analysis; verify against full text before high-stakes use."}>

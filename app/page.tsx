@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { DeckPreview } from "@/components/research/DeckPreview";
 import { LandingHero } from "@/components/research/LandingHero";
 import { LoadingState } from "@/components/research/LoadingState";
@@ -24,17 +24,8 @@ export default function Home() {
   const [downloadingDeck, setDownloadingDeck] = useState(false);
   const [deckDownload, setDeckDownload] = useState<DeckDownload | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (deckDownload?.url) URL.revokeObjectURL(deckDownload.url);
-    };
-  }, [deckDownload]);
-
   function clearDeckDownload() {
-    setDeckDownload((current) => {
-      if (current?.url) URL.revokeObjectURL(current.url);
-      return null;
-    });
+    setDeckDownload(null);
   }
 
   async function runResearch(event: FormEvent<HTMLFormElement>) {
@@ -75,31 +66,33 @@ export default function Home() {
     setError(null);
 
     try {
-      const response = await fetch("/api/research/deck", {
+      const response = await fetch("/api/research/deck?delivery=link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ result })
       });
 
       if (!response.ok) {
-        const payload = await response.json();
+        const payload = await response.json().catch(() => null);
         throw new Error(payload.error || "Deck generation failed.");
       }
 
-      const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
-      const disposition = response.headers.get("Content-Disposition") || "";
-      const fileName = disposition.match(/filename="([^"]+)"/)?.[1] || "ezresearch-deck.pptx";
+      const payload = (await response.json()) as {
+        downloadUrl?: string;
+        fileName?: string;
+      };
+      if (!payload.downloadUrl || !payload.fileName) {
+        throw new Error("Deck generation did not return a download link.");
+      }
 
-      setDeckDownload((current) => {
-        if (current?.url) URL.revokeObjectURL(current.url);
-        return { url: downloadUrl, fileName };
-      });
+      const downloadUrl = new URL(payload.downloadUrl, window.location.origin).toString();
+      setDeckDownload({ url: downloadUrl, fileName: payload.fileName });
 
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = fileName;
+      link.download = payload.fileName;
       link.rel = "noopener";
+      link.style.display = "none";
       document.body.appendChild(link);
       link.click();
       link.remove();
