@@ -226,12 +226,12 @@ npm test
 
 ## Screenshots
 
-Planned additions after the next product pass:
+Recommended screenshot set for the GitHub repository:
 
-- Premium landing page
-- Scientist-image landing backdrop
-- Slide-first output workspace
-- PowerPoint export opened in Keynote/PowerPoint
+- Landing page with local archival research backdrop and minimal search input.
+- Generated deck workspace showing the topic primer or first finding slide.
+- Source-map/reference slide showing citation auditability.
+- Downloaded PowerPoint deck opened in PowerPoint, Keynote, or Google Slides.
 
 The landing page uses local archival-style image assets so the first viewport does not depend on third-party image CDNs during demos.
 
@@ -256,26 +256,23 @@ EzResearch turns a topic into an auditable research package: source retrieval, f
 
 ## Future Improvements
 
-- sharpen the results workspace into a more executive, report-first experience
-- redesign generated reports and decks around answer-first consulting narratives
-- add more README screenshots once the output page is polished
+- add checked-in screenshots or a short demo GIF for the GitHub README
+- add object storage for generated deck downloads in serverless production
 - Semantic Scholar, Crossref, Europe PMC, and Unpaywall connectors
 - PDF/full-text parsing with section-aware extraction
 - BibTeX/RIS export
 - stronger claim clustering across multiple papers
-- LLM synthesis behind a citation-audited service layer
 - persistent project history with SQLite/Postgres/Supabase
 - richer PPTX themes and chart/table slides
 - browser-based report export to PDF
 
 ## Repo Hygiene
 
-The project is ready to publish as a standalone GitHub repo. If this folder is not already a git repository:
+The repository is configured for GitHub publication:
 
-```bash
-git init
-git add .
-git commit -m "Initial EzResearch MVP"
-```
+- MIT license is included.
+- CI runs lint, typecheck, tests, and build on pushes and pull requests.
+- Node `22` is documented in `.nvmrc`, `package.json`, CI, and Netlify config.
+- `.gitignore` excludes `.env.local`, `.next/`, `node_modules/`, generated `.pptx` files, logs, coverage, and TypeScript build metadata.
 
 Avoid committing `.env.local`, `.next/`, `node_modules/`, generated `.pptx` files, or local build artifacts.
