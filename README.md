@@ -2,7 +2,7 @@
 
 Academic research intelligence for evidence-grounded briefs and decks.
 
-EzResearch is a Next.js MVP that turns a biomedical research topic, keyword, or question into a presentation-ready evidence deck. The output is intentionally slide-first: the deck teaches the topic, explains recent findings, embeds source support, and keeps the PowerPoint download one click away.
+EzResearch is a Next.js MVP that turns a biomedical research topic, keyword, or question into a presentation-ready evidence deck. The output is intentionally slide-first: the deck teaches the topic, explains recent findings, separates source support into audit slides, and keeps the PowerPoint download one click away.
 
 It is intentionally not a full systematic-review engine. The current product works from public scholarly metadata and abstracts, keeps claims tied to retrieved records, and makes limitations visible.
 
@@ -28,9 +28,9 @@ EzResearch explores a more trustworthy middle ground:
 - optional preprint inclusion
 - transparent paper scoring
 - optional OpenAI-powered expert synthesis layer for deeper topic explanation, paper-level insights, and presentation-ready finding slides
-- deck-first results workspace with source support embedded inside each slide
+- deck-first results workspace with compact presentation slides plus source-map/reference slides
 - slide-by-slide deck preview with topic primer, scientific findings, implications, caveats, and references
-- tiny icon-based `.pptx` download control via `pptxgenjs`
+- `.pptx` download flow via `pptxgenjs`, including a visible ready-state link after generation
 - explicit demo fallback records when live APIs fail, controlled by env var
 
 ## Demo Workflow
@@ -38,8 +38,8 @@ EzResearch explores a more trustworthy middle ground:
 1. Start from the landing page and enter a topic such as `CRISPR delivery methods` or `glioblastoma immunotherapy`.
 2. Generate the initial intelligence package.
 3. Review the generated deck as the primary output.
-4. Use the embedded source support on each slide to audit claims.
-5. Download the editable PowerPoint deck from the small icon control.
+4. Review source-map, methodology, and reference slides to audit claims.
+5. Download the editable PowerPoint deck from the `Download PPTX` control.
 
 ## Tech Stack
 
@@ -57,7 +57,8 @@ EzResearch explores a more trustworthy middle ground:
 ```text
 app/
   api/research/route.ts          # JSON research package endpoint
-  api/research/deck/route.ts     # PPTX export endpoint
+  api/research/deck/route.ts     # PPTX export/link-generation endpoint
+  api/research/deck/download/    # short-lived server-backed PPTX download URL
   page.tsx                       # client-side workflow shell
 
 components/research/
@@ -84,6 +85,7 @@ lib/
     deckPreview.ts               # structured consulting-style slide preview model
     deckGenerator.ts             # text deck outline
     expertSynthesis.ts           # optional OpenAI expert-agent synthesis layer
+    deckDownloadStore.ts         # temporary in-memory download link store
     pptxGenerator.ts             # PowerPoint export
   types/
     paper.ts                     # shared domain types
@@ -138,6 +140,7 @@ NCBI_API_KEY=
 NCBI_EMAIL=
 NCBI_TOOL=EzResearch
 OPENALEX_MAILTO=
+OPENAI_API_KEY=
 OPENAI_RESEARCH_MODEL=gpt-4.1
 EZRESEARCH_ENABLE_EXPERT_SYNTHESIS=true
 EZRESEARCH_ENABLE_MOCK_FALLBACK=true
@@ -173,6 +176,15 @@ Recommended flow:
 
 Because EzResearch uses Next.js API routes for research and PPTX generation, use a Git-connected Netlify deploy rather than dragging the folder into Netlify as a static site.
 
+### Deployment Note: PPTX Downloads
+
+The current MVP supports two deck export paths:
+
+- direct binary response from `POST /api/research/deck`
+- link-based response from `POST /api/research/deck?delivery=link`, followed by a short-lived `GET /api/research/deck/download?id=...`
+
+The link-based path uses an in-memory store with a 15-minute expiry. That is acceptable for local demos and simple portfolio hosting, but it is not a durable storage design for multi-instance serverless production. A production version should store generated decks in object storage such as S3/Supabase Storage, or fall back to client-side blob downloads without a server-held temporary file.
+
 ## Local Setup
 
 ```bash
@@ -203,6 +215,7 @@ The test suite focuses on pure business logic:
 - scoring
 - evidence table and brief generation
 - deck slide generation
+- deck download link expiry
 - expert synthesis fallback boundaries
 
 Run:
@@ -220,7 +233,7 @@ Planned additions after the next product pass:
 - Slide-first output workspace
 - PowerPoint export opened in Keynote/PowerPoint
 
-The landing page uses a lightweight mix of local archival-style assets and web-hosted scientist imagery. Replace web-hosted references with licensed local assets before a commercial launch.
+The landing page currently uses a lightweight mix of local archival-style assets and web-hosted scientist imagery. Replace any remaining remote references with licensed local assets before using the project as a commercial product.
 
 ## Case Study
 
@@ -235,7 +248,7 @@ EzResearch turns a topic into an auditable research package: source retrieval, f
 ### Engineering Decisions
 
 - Used Next.js App Router for a compact full-stack MVP.
-- Kept LLM calls out of the first version so citation integrity is deterministic.
+- Kept OpenAI synthesis optional so the deterministic path remains usable without credentials.
 - Built scoring as transparent TypeScript rather than a black-box ranker.
 - Preserved excluded records and warning states for auditability.
 - Reused one structured, answer-first deck preview model for both UI preview and PPTX export.

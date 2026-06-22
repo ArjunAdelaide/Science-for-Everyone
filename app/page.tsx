@@ -28,6 +28,13 @@ export default function Home() {
     setDeckDownload(null);
   }
 
+  function startNewSearch() {
+    clearDeckDownload();
+    setError(null);
+    setLoading(false);
+    setResult(null);
+  }
+
   async function runResearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -114,7 +121,9 @@ export default function Home() {
         <DeckPreview
           deckDownload={deckDownload}
           downloadingDeck={downloadingDeck}
+          error={error}
           onDownload={downloadDeck}
+          onNewSearch={startNewSearch}
           result={result}
           slides={result.deckSlides}
         />

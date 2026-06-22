@@ -113,6 +113,9 @@ describe("paper processing", () => {
     expect(slides.map((slide) => slide.id)).toEqual(expect.arrayContaining(["topic-primer", "why-it-matters", "finding-1"]));
     expect(slides[0].bullets.join(" ")).not.toMatch(/presentation-ready|deck starts|following finding slides/i);
     expect(slides.find((slide) => slide.id === "finding-1")?.bullets.join(" ")).toMatch(/lipid|viral|editing|safety/i);
+    expect(slides.every((slide) => slide.bullets.length <= 6)).toBe(true);
+    expect(slides.find((slide) => slide.id === "source-map")?.bullets.length).toBeGreaterThan(0);
+    expect(slides.find((slide) => slide.id === "references")?.footnote).toContain("retrieved metadata");
     expect(evidence[0].supportingPaperIds.length).toBeGreaterThan(1);
   });
 });

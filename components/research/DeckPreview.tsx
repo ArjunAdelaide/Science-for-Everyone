@@ -6,6 +6,8 @@ import type { DeckPreviewSlide, ResearchResult } from "@/lib/types/paper";
 type DeckPreviewProps = {
   deckDownload: DeckDownload | null;
   downloadingDeck: boolean;
+  error: string | null;
+  onNewSearch: () => void;
   onDownload: () => void;
   result: ResearchResult;
   slides: DeckPreviewSlide[];
@@ -34,11 +36,30 @@ function DownloadIcon({ busy }: { busy: boolean }) {
   );
 }
 
-export function DeckPreview({ deckDownload, downloadingDeck, onDownload, result, slides }: DeckPreviewProps) {
+export function DeckPreview({ deckDownload, downloadingDeck, error, onDownload, onNewSearch, result, slides }: DeckPreviewProps) {
   if (slides.length === 0) return null;
+  const dataModeLabel =
+    result.dataMode === "mock-fallback" ? "Demo data" : result.dataMode === "empty" ? "No live records" : "Live sources";
+  const synthesisModeLabel = result.synthesis?.synthesisMode === "expert-agent" ? "Expert synthesis" : "Deterministic";
+  const warning = error || result.warnings[0];
 
   return (
-    <section className="relative min-h-screen bg-[#f7f3ea] px-3 py-6 sm:px-6 lg:px-10">
+    <section className="relative min-h-screen bg-[#f7f3ea] px-3 pb-6 pt-16 sm:px-6 lg:px-10">
+      <div className="fixed left-4 top-4 z-30 flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-2">
+        <button
+          className="inline-flex h-9 items-center border border-ink/15 bg-white/85 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-ink shadow-sm backdrop-blur transition hover:border-ink hover:bg-white"
+          onClick={onNewSearch}
+          type="button"
+        >
+          New search
+        </button>
+        <span className="hidden h-9 items-center border border-ink/10 bg-white/70 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-600 shadow-sm backdrop-blur sm:inline-flex">
+          {dataModeLabel}
+        </span>
+        <span className="hidden h-9 items-center border border-ink/10 bg-white/70 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-600 shadow-sm backdrop-blur md:inline-flex">
+          {synthesisModeLabel}
+        </span>
+      </div>
       <div className="fixed right-4 top-4 z-30 flex items-center gap-2">
         {deckDownload ? (
           <a
@@ -67,6 +88,11 @@ export function DeckPreview({ deckDownload, downloadingDeck, onDownload, result,
       </div>
 
       <div className="mx-auto flex max-w-[1180px] flex-col gap-8">
+        {warning ? (
+          <div className="border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-950 shadow-sm">
+            {warning}
+          </div>
+        ) : null}
         {slides.map((slide, index) => (
           <article className="deck-slide aspect-video overflow-hidden border border-stone-300 bg-white shadow-[0_18px_50px_rgba(17,24,39,0.08)]" key={slide.id}>
             <div className="grid h-full grid-rows-[auto_1fr_auto] p-[clamp(18px,3vw,38px)]">
