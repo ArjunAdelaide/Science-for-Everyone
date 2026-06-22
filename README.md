@@ -233,7 +233,7 @@ Planned additions after the next product pass:
 - Slide-first output workspace
 - PowerPoint export opened in Keynote/PowerPoint
 
-The landing page currently uses a lightweight mix of local archival-style assets and web-hosted scientist imagery. Replace any remaining remote references with licensed local assets before using the project as a commercial product.
+The landing page uses local archival-style image assets so the first viewport does not depend on third-party image CDNs during demos.
 
 ## Case Study
 

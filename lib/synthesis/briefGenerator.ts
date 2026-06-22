@@ -20,14 +20,23 @@ function confidenceForTheme(theme: ResearchTheme): EvidenceClaim["confidence"] {
 }
 
 export function buildEvidenceTable(papers: Paper[], themes?: ResearchTheme[]): EvidenceClaim[] {
+  const paperIds = new Set(papers.map((paper) => paper.id));
+
   if (themes && themes.length > 0) {
-    return themes.slice(0, 4).map((theme) => ({
-      claim: theme.headline,
-      supportingPaperIds: theme.supportingPaperIds,
-      confidence: confidenceForTheme(theme),
-      explanation: theme.summary,
-      limitations: theme.limitations.join(" ")
-    }));
+    const themeClaims = themes
+      .slice(0, 4)
+      .map((theme) => ({
+        claim: theme.headline,
+        supportingPaperIds: theme.supportingPaperIds.filter((id) => paperIds.has(id)),
+        confidence: confidenceForTheme(theme),
+        explanation: theme.summary,
+        limitations: theme.limitations.join(" ")
+      }))
+      .filter((claim) => claim.supportingPaperIds.length > 0);
+
+    if (themeClaims.length > 0) {
+      return themeClaims;
+    }
   }
 
   const top = papers.slice(0, 6);

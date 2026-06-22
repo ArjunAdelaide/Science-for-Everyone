@@ -5,7 +5,7 @@ import { filterPapers } from "@/lib/scholarly/filter";
 import { buildEvidenceTable, generateBriefMarkdown } from "@/lib/synthesis/briefGenerator";
 import { buildDeckPreviewSlides } from "@/lib/synthesis/deckPreview";
 import { buildResearchSynthesis } from "@/lib/synthesis/researchSynthesis";
-import type { Paper, ResearchRequest, SearchMethodology } from "@/lib/types/paper";
+import type { Paper, ResearchRequest, ResearchTheme, SearchMethodology } from "@/lib/types/paper";
 
 function paper(overrides: Partial<Paper>): Paper {
   return {
@@ -82,6 +82,27 @@ describe("paper processing", () => {
     expect(evidence[0].supportingPaperIds).toEqual(["p1"]);
     expect(brief).toContain("EzResearch Research Brief");
     expect(brief).toContain("10.123/test");
+  });
+
+  it("drops unsupported paper ids from evidence claims", () => {
+    const ranked = rankPapers([paper({ id: "p1", doi: "10.123/test" })], "CRISPR delivery", 2021, 2026);
+    const themes: ResearchTheme[] = [
+      {
+        id: "theme-1",
+        title: "Theme",
+        headline: "LNP delivery is prominent",
+        summary: "Theme summary",
+        supportingPaperIds: ["p1", "invented-paper-id"],
+        evidenceLevel: "Moderate",
+        methods: ["abstract review"],
+        implications: ["supports auditability"],
+        limitations: ["abstract only"]
+      }
+    ];
+
+    const evidence = buildEvidenceTable(ranked, themes);
+
+    expect(evidence[0].supportingPaperIds).toEqual(["p1"]);
   });
 
   it("clusters ranked papers into explanatory synthesis themes", () => {
