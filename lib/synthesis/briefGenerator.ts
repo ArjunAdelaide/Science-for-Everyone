@@ -112,10 +112,13 @@ export function generateBriefMarkdown(
   const uncertaintyLines = (synthesis?.uncertainties || []).map((item) => `- ${item}`).join("\n");
   const gapLines = (synthesis?.researchGaps || []).map((item) => `- ${item}`).join("\n");
 
-  return `# EzResearch Research Brief: ${request.question}
+  return `# EzResearch Recent Findings Report: ${request.question}
 
-## Research Topic
-${request.question}
+## Scope
+- Topic: ${request.question}
+- Search window: ${methodology.dateRange.startYear}-${methodology.dateRange.endYear}
+- Analysis depth: ${methodology.analysisDepth}
+- Evidence base: ${papers.length} ranked scholarly records
 
 ## Executive Summary
 ${synthesis?.executiveAnswer || "This brief compresses retrieved scholarly metadata and abstracts into an evidence-grounded starting point for research review. It prioritises likely scholarly journal literature, ranks papers with transparent signals, and keeps citations tied to retrieved records."}
@@ -130,14 +133,19 @@ ${takeawayLines || ""}
 - Analysis depth: ${methodology.analysisDepth}. Full text, figures, supplementary data, and PDFs are outside the current MVP.
 - Peer-review language: records are described as likely peer-reviewed only when source and publication metadata support that inference.
 
-## Papers Analysed
-${paperLines || "No papers were available after filtering."}
+## What This Field Is About
+${synthesis?.topicPrimer.overview || "The topic primer is generated from retrieved titles, abstracts, publication types, and metadata."}
+
+${synthesis?.topicPrimer.whyItMatters || ""}
+
+## Recent Findings in the Selected Window
+${themeLines || "No cross-paper themes were generated."}
 
 ## Abstract-Derived Claims
 ${findingLines || "No evidence claims were generated."}
 
-## Synthesised Themes
-${themeLines || "No cross-paper themes were generated."}
+## Strongest Papers Analysed
+${paperLines || "No papers were available after filtering."}
 
 ## Paper-Level Expert Notes
 ${insightLines || "No paper-level expert notes were generated."}

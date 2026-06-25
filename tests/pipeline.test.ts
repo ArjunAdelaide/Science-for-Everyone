@@ -81,7 +81,8 @@ describe("paper processing", () => {
     const brief = generateBriefMarkdown(request, methodology, ranked, evidence);
 
     expect(evidence[0].supportingPaperIds).toEqual(["p1"]);
-    expect(brief).toContain("EzResearch Research Brief");
+    expect(brief).toContain("EzResearch Recent Findings Report");
+    expect(brief).toContain("Recent Findings in the Selected Window");
     expect(brief).toContain("10.123/test");
   });
 
