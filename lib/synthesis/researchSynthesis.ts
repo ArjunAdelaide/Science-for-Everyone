@@ -117,6 +117,7 @@ const STOPWORDS = new Set([
   "data",
   "editing",
   "effect",
+  "ensuremath",
   "for",
   "from",
   "have",
@@ -127,6 +128,12 @@ const STOPWORDS = new Set([
   "journal",
   "method",
   "methods",
+  "mml",
+  "mn",
+  "mo",
+  "mrow",
+  "msub",
+  "msup",
   "of",
   "paper",
   "papers",
@@ -160,6 +167,25 @@ const STOPWORDS = new Set([
 ]);
 
 const SCIENTIFIC_SIGNAL_TERMS = [
+  "black hole",
+  "black holes",
+  "general relativity",
+  "gravitational wave",
+  "gravitational waves",
+  "event horizon",
+  "accretion disk",
+  "galaxy",
+  "quasar",
+  "cosmology",
+  "quantum physics",
+  "quantum simulation",
+  "quantum sensing",
+  "quantum computing",
+  "quantum cavity",
+  "entanglement",
+  "coherence",
+  "qubit",
+  "cavity",
   "alphafold",
   "protein structure",
   "structure prediction",
@@ -390,8 +416,15 @@ function corpusText(question: string, papers: Paper[]): string {
 }
 
 function topicKind(question: string, papers: Paper[]): "delivery" | "protein-ai" | "general-biomed" {
+  const query = question.toLowerCase();
   const text = corpusText(question, papers);
-  if (/crispr|cas9|gene editing|genome editing|delivery|viral vector|lipid nanoparticle|aav|rnp/i.test(text)) return "delivery";
+
+  if (/crispr|cas9|gene editing|genome editing|delivery method|delivery methods|viral vector|lipid nanoparticle|aav|rnp/.test(query)) {
+    return "delivery";
+  }
+  if (/crispr|cas9|gene editing|genome editing/i.test(text) && /delivery|vector|nanoparticle|carrier|aav|rnp/i.test(text)) {
+    return "delivery";
+  }
   if (/alphafold|protein structure|structure prediction|protein folding|protein design|deep learning|machine learning|foundation model/i.test(text)) {
     return "protein-ai";
   }
@@ -429,7 +462,14 @@ function topicLabel(question: string): string {
     .replace(/\s+/g, " ")
     .trim();
   const keywords = extractKeywords(cleaned || question).slice(0, 5);
-  return keywords.length ? keywords.join(" ") : question.trim();
+  return displayTopicLabel(keywords.length ? keywords.join(" ") : question.trim());
+}
+
+function displayTopicLabel(label: string): string {
+  return label
+    .split(/\s+/)
+    .map((word) => displayConcept(word))
+    .join(" ");
 }
 
 function buildTopicPrimer(question: string, papers: Paper[]): TopicPrimer {

@@ -13,10 +13,20 @@ import { buildResearchSynthesis } from "@/lib/synthesis/researchSynthesis";
 import { enhanceSynthesisWithExpertAgents } from "@/lib/synthesis/expertSynthesis";
 import { mockPapers } from "@/lib/scholarly/mockPapers";
 
+export function isBiomedicalQuery(question: string): boolean {
+  return /\b(bio|biomedical|medical|clinical|patient|disease|therapy|therapeutic|cancer|immunotherapy|drug|vaccine|protein|genome|gene|crispr|cas9|cell|molecular|neuro|cardio|diabetes|pathway|enzyme|virus|viral|rna|dna)\b/i.test(
+    question
+  );
+}
+
+export function sourcesForQuestion(question: string): string[] {
+  return isBiomedicalQuery(question) ? ["PubMed / NCBI E-utilities", "OpenAlex"] : ["OpenAlex"];
+}
+
 function methodologyFor(request: ResearchRequest, generatedQueries: string[], notes: string[]): SearchMethodology {
   return {
     generatedQueries,
-    sources: ["PubMed / NCBI E-utilities", "OpenAlex"],
+    sources: sourcesForQuestion(request.question),
     dateRange: {
       startYear: request.startYear,
       endYear: request.endYear
@@ -33,17 +43,25 @@ async function retrievePapers(request: ResearchRequest): Promise<{
   warnings: string[];
 }> {
   const warnings: string[] = [];
-  const results = await Promise.allSettled([
-    searchPubMed(request.question, request.startYear, request.endYear, request.maxPapers),
-    searchOpenAlex(request.question, request.startYear, request.endYear, request.maxPapers)
-  ]);
+  const searchTasks: Array<{ source: "PubMed" | "OpenAlex"; run: Promise<Paper[]> }> = [
+    { source: "OpenAlex", run: searchOpenAlex(request.question, request.startYear, request.endYear, request.maxPapers) }
+  ];
+
+  if (isBiomedicalQuery(request.question)) {
+    searchTasks.unshift({
+      source: "PubMed",
+      run: searchPubMed(request.question, request.startYear, request.endYear, request.maxPapers)
+    });
+  }
+
+  const results = await Promise.allSettled(searchTasks.map((task) => task.run));
 
   const papers = results.flatMap((result, index) => {
     if (result.status === "fulfilled") {
       return result.value;
     }
 
-    const source = index === 0 ? "PubMed" : "OpenAlex";
+    const source = searchTasks[index].source;
     warnings.push(`${source} retrieval failed: ${result.reason instanceof Error ? result.reason.message : "unknown error"}`);
     return [];
   });

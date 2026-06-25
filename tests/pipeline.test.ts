@@ -226,4 +226,82 @@ describe("paper processing", () => {
     expect(text).toMatch(/quantum|cavity|measurement|methods/i);
     expect(validateDeckSlides(slides, ranked)).toEqual([]);
   });
+
+  it("filters math markup artifacts from physics reports", () => {
+    const ranked = rankPapers(
+      [
+        paper({
+          id: "b1",
+          title: "Black holes and gravitational waves in general relativity",
+          abstract:
+            "Black holes are studied through general relativity, gravitational waves, accretion, and galaxy evolution. Math markup mml mrow ensuremath should not become concepts."
+        }),
+        paper({
+          id: "b2",
+          title: "Event horizon observations of black holes",
+          abstract:
+            "Event horizon observations connect black hole imaging, accretion physics, and cosmology."
+        })
+      ],
+      "black holes",
+      2021,
+      2026
+    );
+    const methodology: SearchMethodology = {
+      generatedQueries: ["black holes"],
+      sources: ["OpenAlex"],
+      dateRange: { startYear: 2021, endYear: 2026 },
+      includePreprints: false,
+      maxPapers: 5,
+      analysisDepth: "abstract-only",
+      notes: []
+    };
+    const synthesis = buildResearchSynthesis("black holes", methodology, ranked);
+    const evidence = buildEvidenceTable(ranked, synthesis.themes);
+    const slides = buildDeckPreviewSlides("black holes", methodology, ranked, evidence, synthesis);
+    const text = [synthesis.topicPrimer.overview, ...slides.flatMap((slide) => [slide.title, ...slide.bullets])].join(" ");
+
+    expect(text).not.toMatch(/mml|mrow|ensuremath/i);
+    expect(text).toMatch(/black hole|general relativity|gravitational|event horizon/i);
+    expect(validateDeckSlides(slides, ranked)).toEqual([]);
+  });
+
+  it("does not force non-CRISPR biomedical topics into CRISPR delivery framing", () => {
+    const ranked = rankPapers(
+      [
+        paper({
+          id: "c1",
+          title: "Cancer immunotherapy checkpoint inhibitor response",
+          abstract:
+            "Cancer immunotherapy studies evaluate checkpoint inhibitor response, immune resistance, biomarkers, and patient outcomes across tumour types."
+        }),
+        paper({
+          id: "c2",
+          title: "Combination immunotherapy biomarkers in solid tumours",
+          abstract:
+            "Combination immunotherapy research links biomarkers, toxicity, and survival endpoints to treatment selection in solid tumours."
+        })
+      ],
+      "cancer immunotherapy",
+      2021,
+      2026
+    );
+    const methodology: SearchMethodology = {
+      generatedQueries: ["cancer immunotherapy"],
+      sources: ["PubMed / NCBI E-utilities", "OpenAlex"],
+      dateRange: { startYear: 2021, endYear: 2026 },
+      includePreprints: false,
+      maxPapers: 5,
+      analysisDepth: "abstract-only",
+      notes: []
+    };
+    const synthesis = buildResearchSynthesis("cancer immunotherapy", methodology, ranked);
+    const evidence = buildEvidenceTable(ranked, synthesis.themes);
+    const slides = buildDeckPreviewSlides("cancer immunotherapy", methodology, ranked, evidence, synthesis);
+    const text = [synthesis.topicPrimer.overview, ...slides.flatMap((slide) => [slide.title, ...slide.bullets])].join(" ");
+
+    expect(text).not.toMatch(/CRISPR|payload into target cells|delivery method moves payload/i);
+    expect(text).toMatch(/cancer|immunotherapy|immune|biomarker|patient/i);
+    expect(validateDeckSlides(slides, ranked)).toEqual([]);
+  });
 });

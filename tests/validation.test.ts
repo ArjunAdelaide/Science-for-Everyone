@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sourcesForQuestion } from "@/lib/research/runResearch";
 import { parseResearchRequest } from "@/lib/research/validation";
 
 describe("research request validation", () => {
@@ -13,5 +14,11 @@ describe("research request validation", () => {
 
   it("rejects empty input", () => {
     expect(() => parseResearchRequest({ question: " " })).toThrow("Enter a research topic");
+  });
+
+  it("routes broad non-biomedical topics away from PubMed-only assumptions", () => {
+    expect(sourcesForQuestion("quantum physics")).toEqual(["OpenAlex"]);
+    expect(sourcesForQuestion("black holes")).toEqual(["OpenAlex"]);
+    expect(sourcesForQuestion("cancer immunotherapy")).toEqual(["PubMed / NCBI E-utilities", "OpenAlex"]);
   });
 });

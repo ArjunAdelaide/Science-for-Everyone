@@ -23,6 +23,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   function startNewSearch() {
+    setForm(defaultForm);
     setError(null);
     setLoading(false);
     setResult(null);
