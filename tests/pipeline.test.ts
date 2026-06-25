@@ -189,4 +189,41 @@ describe("paper processing", () => {
     expect(deckText).toMatch(/protein|structure|AlphaFold|prediction|validation/i);
     expect(validateDeckSlides(slides, ranked)).toEqual([]);
   });
+
+  it("keeps broad non-biomedical reports out of delivery-specific language", () => {
+    const ranked = rankPapers(
+      [
+        paper({
+          id: "q1",
+          title: "Quantum physics measurements with cavity systems",
+          abstract: "Quantum cavity experiments use measurement protocols to study coherence, entanglement, and interactions in controlled systems."
+        }),
+        paper({
+          id: "q2",
+          title: "Nanoparticle platforms for quantum sensing",
+          abstract: "Quantum sensing studies explore nanoparticles, cavities, and field interactions as measurement platforms."
+        })
+      ],
+      "quantum physics",
+      2021,
+      2026
+    );
+    const methodology: SearchMethodology = {
+      generatedQueries: ["quantum physics"],
+      sources: ["OpenAlex"],
+      dateRange: { startYear: 2021, endYear: 2026 },
+      includePreprints: false,
+      maxPapers: 5,
+      analysisDepth: "abstract-only",
+      notes: []
+    };
+    const synthesis = buildResearchSynthesis("quantum physics", methodology, ranked);
+    const evidence = buildEvidenceTable(ranked, synthesis.themes);
+    const slides = buildDeckPreviewSlides("quantum physics", methodology, ranked, evidence, synthesis);
+    const text = [synthesis.topicPrimer.overview, ...slides.flatMap((slide) => [slide.title, ...slide.bullets])].join(" ");
+
+    expect(text).not.toMatch(/delivery method|payload|target cells|deck treats|deck separates/i);
+    expect(text).toMatch(/quantum|cavity|measurement|methods/i);
+    expect(validateDeckSlides(slides, ranked)).toEqual([]);
+  });
 });

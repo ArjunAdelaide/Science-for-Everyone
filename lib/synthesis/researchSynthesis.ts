@@ -442,10 +442,10 @@ function buildTopicPrimer(question: string, papers: Paper[]): TopicPrimer {
     ? [
         `The retrieved literature repeatedly discusses ${formatConcepts(coreTerms.slice(0, 3))}.`,
         `The strongest records frame the topic through ${formatConcepts(coreTerms.slice(3, 6))}.`,
-        "The deck treats these recurring terms as a source-grounded map of the abstracts, not a complete field ontology."
+        "The report treats these recurring terms as a source-grounded map of the abstracts, not a complete field ontology."
       ]
     : [
-        "The retrieved literature is sparse or metadata-light, so the deck starts from the highest-scoring papers.",
+        "The retrieved literature is sparse or metadata-light, so the report starts from the highest-scoring papers.",
         "The topic should be interpreted through the ranked source list until deeper full-text extraction is added."
       ];
 
@@ -467,7 +467,7 @@ function overviewForTopic(kind: ReturnType<typeof topicKind>, topic: string, cor
   if (kind === "protein-ai") {
     return `${topic} predicts 3D protein structure from sequence signals; treat outputs as structural hypotheses that need biological validation.`;
   }
-  return `${topic} is best read through the strongest recurring concepts in the retrieved abstracts: ${formatConcepts(coreTerms.slice(0, 4))}. The deck separates what the literature appears to say from what still needs full-text validation.`;
+  return `${topic} is best read through the strongest recurring concepts in the retrieved abstracts: ${formatConcepts(coreTerms.slice(0, 4))}. The report separates what the literature appears to say from what still needs full-text validation.`;
 }
 
 function whyTopicMatters(kind: ReturnType<typeof topicKind>): string {
@@ -524,17 +524,31 @@ function teachingTakeawayForTheme(themeId: string, concepts: string[], sourceCou
     return `Across ${sourceText}, the signal is ${conceptPhrase}; use it to see where protein-structure AI helps and where experiments still matter.`;
   }
 
+  if (kind === "delivery") {
+    if (themeId === "methods-and-measurement") {
+      return `Evidence clusters around ${conceptPhrase}. The question is which delivery method moves payload into target cells safely and controllably.`;
+    }
+    if (themeId === "findings-and-effects") {
+      return `The clearest performance signal is ${conceptPhrase}. Treat outcomes as delivery-dependent, not universal across every method or model.`;
+    }
+    if (themeId === "constraints-and-risks") {
+      return `The main bottleneck is ${conceptPhrase}. These constraints decide whether an abstract-level signal can become decision-grade evidence.`;
+    }
+    if (themeId === "application-and-translation") {
+      return `The translational story centres on ${conceptPhrase}. The key test is whether it works in the biological setting that matters.`;
+    }
+  }
   if (themeId === "methods-and-measurement") {
-    return `Evidence clusters around ${conceptPhrase}. The question is which delivery method moves payload into target cells safely and controllably.`;
+    return `Evidence clusters around ${conceptPhrase}. The key question is which methods, models, or measurements make the finding reliable.`;
   }
   if (themeId === "findings-and-effects") {
-    return `The clearest performance signal is ${conceptPhrase}. Treat outcomes as delivery-dependent, not universal across every method or model.`;
+    return `The clearest signal is ${conceptPhrase}. Treat it as context-dependent until methods and outcomes are validated.`;
   }
   if (themeId === "constraints-and-risks") {
-    return `The main bottleneck is ${conceptPhrase}. These constraints decide whether an abstract-level signal can become decision-grade evidence.`;
+    return `The main uncertainty is ${conceptPhrase}. These limits decide how far the abstract-level finding can be trusted.`;
   }
   if (themeId === "application-and-translation") {
-    return `The translational story centres on ${conceptPhrase}. The key test is whether it works in the biological setting that matters.`;
+    return `The application story centres on ${conceptPhrase}. The key test is whether the finding holds in the setting that matters.`;
   }
   if (themeId === "evidence-synthesis") {
     return `Review-level records separate field patterns from isolated studies, but conclusions depend on how ${conceptPhrase} are defined.`;
@@ -556,17 +570,31 @@ function whyItMattersForTheme(themeId: string, concepts: string[], kind: ReturnT
     return `This matters because ${conceptPhrase} determines whether protein-structure AI is used as a decision aid, a hypothesis generator, or a result requiring confirmation.`;
   }
 
+  if (kind === "delivery") {
+    if (themeId === "methods-and-measurement") {
+      return `Methods matter because changing the delivery vehicle can change biodistribution, cargo capacity, durability, and safety, even when the editing system is nominally the same.`;
+    }
+    if (themeId === "findings-and-effects") {
+      return `Performance matters because editing efficiency, specificity, and biological context decide whether a result is scientifically interesting or practically usable.`;
+    }
+    if (themeId === "constraints-and-risks") {
+      return `Risk matters because dose, toxicity, immune response, and off-target concerns can erase the value of otherwise strong editing activity.`;
+    }
+    if (themeId === "application-and-translation") {
+      return `Translation matters because the same platform can look different across tissues, diseases, model systems, and clinical use cases.`;
+    }
+  }
   if (themeId === "methods-and-measurement") {
-    return `Methods matter because changing the delivery vehicle can change biodistribution, cargo capacity, durability, and safety, even when the editing system is nominally the same.`;
+    return `Methods matter because the same topic can look different when authors use different models, measurements, assumptions, or endpoints.`;
   }
   if (themeId === "findings-and-effects") {
-    return `Performance matters because editing efficiency, specificity, and biological context decide whether a result is scientifically interesting or practically usable.`;
+    return `Reported effects matter only when the methods and comparison points are clear enough to interpret.`;
   }
   if (themeId === "constraints-and-risks") {
-    return `Risk matters because dose, toxicity, immune response, and off-target concerns can erase the value of otherwise strong editing activity.`;
+    return `Uncertainty matters because abstract-level signals can weaken after full-text methods, limitations, and negative results are reviewed.`;
   }
   if (themeId === "application-and-translation") {
-    return `Translation matters because the same platform can look different across tissues, diseases, model systems, and clinical use cases.`;
+    return `Application matters because a finding is only useful if it transfers to the practical setting the reader cares about.`;
   }
 
   return `This matters because ${conceptPhrase} helps explain why the retrieved papers may agree on the topic but differ in usefulness for decisions.`;
