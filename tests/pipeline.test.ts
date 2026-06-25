@@ -147,4 +147,45 @@ describe("paper processing", () => {
     expect(slides[0].bullets.join(" ")).toMatch(/Main answer:/);
     expect(evidence[0].supportingPaperIds.length).toBeGreaterThan(1);
   });
+
+  it("does not turn non-CRISPR topics into stopword or delivery decks", () => {
+    const ranked = rankPapers(
+      [
+        paper({
+          id: "a1",
+          title: "AlphaFold protein structure prediction for variant interpretation",
+          abstract:
+            "AlphaFold models can support protein structure prediction and variant interpretation, but confidence scores and experimental validation remain important."
+        }),
+        paper({
+          id: "a2",
+          title: "Deep learning protein folding benchmarks and experimental validation",
+          abstract:
+            "Protein folding benchmarks show that deep learning methods help prioritise experiments, although membrane proteins and complexes still require careful validation."
+        })
+      ],
+      "AlphaFold",
+      2021,
+      2026
+    );
+    const methodology: SearchMethodology = {
+      generatedQueries: ["alphafold"],
+      sources: ["OpenAlex"],
+      dateRange: { startYear: 2021, endYear: 2026 },
+      includePreprints: false,
+      maxPapers: 5,
+      analysisDepth: "abstract-only",
+      notes: []
+    };
+    const synthesis = buildResearchSynthesis("AlphaFold", methodology, ranked);
+    const evidence = buildEvidenceTable(ranked, synthesis.themes);
+    const slides = buildDeckPreviewSlides("AlphaFold", methodology, ranked, evidence, synthesis);
+    const deckText = slides.flatMap((slide) => [slide.title, ...slide.bullets]).join(" ");
+
+    expect(deckText).not.toMatch(/\b(the|and|of),\s*(and|of)/i);
+    expect(deckText).not.toMatch(/Delivery research|delivery systems problem|payload into target cells/i);
+    expect(deckText).not.toContain("...");
+    expect(deckText).toMatch(/protein|structure|AlphaFold|prediction|validation/i);
+    expect(validateDeckSlides(slides, ranked)).toEqual([]);
+  });
 });

@@ -10,7 +10,10 @@ import type {
 import { finalizeDeckSlides } from "@/lib/synthesis/deckQuality";
 
 function truncate(text: string, maxLength: number): string {
-  return text.length <= maxLength ? text : `${text.slice(0, maxLength - 3).trim()}...`;
+  if (text.length <= maxLength) return text;
+  const sliced = text.slice(0, maxLength - 3).trim();
+  const lastSpace = sliced.lastIndexOf(" ");
+  return `${(lastSpace > 48 ? sliced.slice(0, lastSpace) : sliced).trim()}...`;
 }
 
 function cite(paper?: Paper): string {

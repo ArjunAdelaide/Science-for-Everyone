@@ -41,6 +41,7 @@ export function polishDeckText(value: string | undefined, fallback = ""): string
     .replace(/\brapidly evolving\b/gi, "changing")
     .replace(/\bpromising\b/gi, "source-backed")
     .replace(/\bcrispr\b/gi, "CRISPR")
+    .replace(/\balphafold\b/gi, "AlphaFold")
     .replace(/\bCas9\b/gi, "Cas9")
     .replace(/\baav\b/gi, "AAV")
     .replace(/\brna\b/gi, "RNA")

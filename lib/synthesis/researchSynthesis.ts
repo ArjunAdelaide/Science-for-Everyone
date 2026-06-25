@@ -160,6 +160,21 @@ const STOPWORDS = new Set([
 ]);
 
 const SCIENTIFIC_SIGNAL_TERMS = [
+  "alphafold",
+  "protein structure",
+  "structure prediction",
+  "protein folding",
+  "protein design",
+  "protein-protein interaction",
+  "deep learning",
+  "machine learning",
+  "foundation model",
+  "large language model",
+  "molecular dynamics",
+  "drug discovery",
+  "cryo-em",
+  "sequence alignment",
+  "benchmark",
   "nanomaterial",
   "lipid-based nanoparticle",
   "lipid nanoparticle",
@@ -323,10 +338,6 @@ function paperTeachingTakeaway(paper: Paper, question: string): string {
 }
 
 function safePaperFinding(paper: Paper, question: string): string {
-  if (paper.keyFinding && paper.keyFinding.length <= 180 && !isWeakAbstractSentence(paper.keyFinding)) {
-    return paper.keyFinding;
-  }
-
   return paperTeachingTakeaway(paper, question);
 }
 
@@ -368,18 +379,47 @@ function uniqueConcepts(concepts: string[]): string[] {
       .replace(/\bnanoparticles\b/g, "nanoparticle")
       .replace(/\s+/g, " ")
       .trim();
-    if (!normalized || seen.has(normalized)) return false;
+    if (!normalized || STOPWORDS.has(normalized) || normalized.length < 3 || seen.has(normalized)) return false;
     seen.add(normalized);
     return true;
   });
 }
 
+function corpusText(question: string, papers: Paper[]): string {
+  return `${question} ${papers.map(textForPaper).join(" ")}`;
+}
+
+function topicKind(question: string, papers: Paper[]): "delivery" | "protein-ai" | "general-biomed" {
+  const text = corpusText(question, papers);
+  if (/crispr|cas9|gene editing|genome editing|delivery|viral vector|lipid nanoparticle|aav|rnp/i.test(text)) return "delivery";
+  if (/alphafold|protein structure|structure prediction|protein folding|protein design|deep learning|machine learning|foundation model/i.test(text)) {
+    return "protein-ai";
+  }
+  return "general-biomed";
+}
+
 function formatConcepts(concepts: string[]): string {
-  const cleaned = uniqueConcepts(concepts);
+  const cleaned = uniqueConcepts(concepts).map(displayConcept);
   if (cleaned.length === 0) return "the dominant concepts in the retrieved abstracts";
   if (cleaned.length === 1) return cleaned[0];
   if (cleaned.length === 2) return `${cleaned[0]} and ${cleaned[1]}`;
   return `${cleaned.slice(0, -1).join(", ")}, and ${cleaned[cleaned.length - 1]}`;
+}
+
+function displayConcept(concept: string): string {
+  const labels: Record<string, string> = {
+    alphafold: "AlphaFold",
+    crispr: "CRISPR",
+    cas9: "Cas9",
+    aav: "AAV",
+    lnp: "LNP",
+    rnp: "RNP",
+    rna: "RNA",
+    dna: "DNA",
+    "cryo-em": "cryo-EM"
+  };
+
+  return labels[concept.toLowerCase()] || concept;
 }
 
 function topicLabel(question: string): string {
@@ -397,6 +437,7 @@ function buildTopicPrimer(question: string, papers: Paper[]): TopicPrimer {
   const concepts = topConcepts(papers, question).slice(0, 8);
   const signals = scientificSignals(papers, 6);
   const coreTerms = signals.length ? signals : concepts;
+  const kind = topicKind(question, papers);
   const focus = concepts.length
     ? [
         `The retrieved literature repeatedly discusses ${formatConcepts(coreTerms.slice(0, 3))}.`,
@@ -411,16 +452,32 @@ function buildTopicPrimer(question: string, papers: Paper[]): TopicPrimer {
   return {
     topic,
     overview: coreTerms.length
-      ? `${topic} is best read as a delivery systems problem: payload, carrier, target tissue, and safety constraints all shape whether an experimental signal becomes useful.`
+      ? overviewForTopic(kind, topic, coreTerms)
       : `${topic} is presented here through the retrieved abstracts and metadata. The evidence base is too thin for a broad primer, so the deck focuses on the highest-scoring records and their directly stated claims.`,
-    whyItMatters: /clinical|patient|therapy|therapeutic|disease|treatment|delivery|crispr|drug|vaccine|diagnos/i.test(
-      `${question} ${papers.map(textForPaper).join(" ")}`
-    )
-      ? `This matters because delivery quality can decide whether a strong biological mechanism becomes a useful therapy, tool, or product.`
-      : `This matters because the literature is moving faster than most readers can track manually; a useful presentation needs to compress the field into clear concepts, findings, and unresolved questions.`,
+    whyItMatters: whyTopicMatters(kind),
     currentFocus: focus,
     keyTerms: uniqueConcepts([...signals, ...concepts]).slice(0, 8)
   };
+}
+
+function overviewForTopic(kind: ReturnType<typeof topicKind>, topic: string, coreTerms: string[]): string {
+  if (kind === "delivery") {
+    return `${topic} is best read as a delivery systems problem: payload, carrier, target tissue, and safety constraints all shape whether an experimental signal becomes useful.`;
+  }
+  if (kind === "protein-ai") {
+    return `${topic} predicts 3D protein structure from sequence signals; treat outputs as structural hypotheses that need biological validation.`;
+  }
+  return `${topic} is best read through the strongest recurring concepts in the retrieved abstracts: ${formatConcepts(coreTerms.slice(0, 4))}. The deck separates what the literature appears to say from what still needs full-text validation.`;
+}
+
+function whyTopicMatters(kind: ReturnType<typeof topicKind>): string {
+  if (kind === "delivery") {
+    return "This matters because delivery quality can decide whether a strong biological mechanism becomes a useful therapy, tool, or product.";
+  }
+  if (kind === "protein-ai") {
+    return "This matters because better structure prediction can change how researchers reason about protein function, variant effects, drug targets, and experimental design.";
+  }
+  return "This matters because the literature is moving faster than most readers can track manually; a useful presentation needs to compress the field into clear concepts, findings, and unresolved questions.";
 }
 
 function papersForTheme(papers: Paper[], patterns: readonly RegExp[]): Paper[] {
@@ -445,9 +502,27 @@ function strongestSentenceForTheme(papers: Paper[], queryKeywords: string[], pat
   return sentences[0]?.sentence || strongestSentence(papers, queryKeywords);
 }
 
-function teachingTakeawayForTheme(themeId: string, concepts: string[], sourceCount: number): string {
+function fallbackConcepts(question: string, papers: Paper[]): string[] {
+  const keywords = extractKeywords(question).filter((keyword) => !STOPWORDS.has(keyword.toLowerCase()));
+  return uniqueConcepts([...scientificSignals(papers, 4), ...topConcepts(papers, question), ...keywords]).slice(0, 4);
+}
+
+function teachingTakeawayForTheme(themeId: string, concepts: string[], sourceCount: number, kind: ReturnType<typeof topicKind>): string {
   const conceptPhrase = formatConcepts(concepts.slice(0, 3));
   const sourceText = `${sourceCount} retrieved source${sourceCount === 1 ? "" : "s"}`;
+
+  if (kind === "protein-ai") {
+    if (themeId === "methods-and-measurement") {
+      return `Evidence clusters around ${conceptPhrase}. Use predictions to guide experiments, not as final proof.`;
+    }
+    if (themeId === "findings-and-effects") {
+      return `The useful signal is ${conceptPhrase}. Predictions can speed hypothesis generation, but experiments still decide truth.`;
+    }
+    if (themeId === "constraints-and-risks") {
+      return `Main caution: ${conceptPhrase}. Confidence scores and biological context decide how much to trust the model.`;
+    }
+    return `Across ${sourceText}, the signal is ${conceptPhrase}; use it to see where protein-structure AI helps and where experiments still matter.`;
+  }
 
   if (themeId === "methods-and-measurement") {
     return `Evidence clusters around ${conceptPhrase}. The question is which delivery method moves payload into target cells safely and controllably.`;
@@ -468,8 +543,18 @@ function teachingTakeawayForTheme(themeId: string, concepts: string[], sourceCou
   return `Across ${sourceText}, the teaching signal is ${conceptPhrase}; treat it as an abstract-level map, not a final verdict.`;
 }
 
-function whyItMattersForTheme(themeId: string, concepts: string[]): string {
+function whyItMattersForTheme(themeId: string, concepts: string[], kind: ReturnType<typeof topicKind>): string {
   const conceptPhrase = formatConcepts(concepts.slice(0, 3));
+
+  if (kind === "protein-ai") {
+    if (themeId === "methods-and-measurement") {
+      return "Methods matter because model architecture, training data, confidence scoring, and benchmark design shape whether predictions are useful for real biology.";
+    }
+    if (themeId === "findings-and-effects") {
+      return "Performance matters because accurate structures can redirect experiments, but misleading predictions can waste validation effort.";
+    }
+    return `This matters because ${conceptPhrase} determines whether protein-structure AI is used as a decision aid, a hypothesis generator, or a result requiring confirmation.`;
+  }
 
   if (themeId === "methods-and-measurement") {
     return `Methods matter because changing the delivery vehicle can change biodistribution, cargo capacity, durability, and safety, even when the editing system is nominally the same.`;
@@ -523,9 +608,36 @@ function buildTheme(
 }
 
 function findingTitleForTheme(theme: ResearchTheme, papers: Paper[], question: string): string {
+  const kind = topicKind(question, papers);
   const signals = themeSignals(theme.id, papers, question, 3);
-  const concepts = (signals.length ? signals : topConcepts(papers, question)).slice(0, 3);
+  const concepts = (signals.length ? signals : fallbackConcepts(question, papers)).slice(0, 3);
   const conceptPhrase = formatConcepts(concepts);
+
+  if (kind === "protein-ai") {
+    if (theme.id === "methods-and-measurement") {
+      return `AlphaFold evidence centres on ${conceptPhrase}`;
+    }
+    if (theme.id === "findings-and-effects") {
+      return `Protein-structure predictions are most useful around ${conceptPhrase}`;
+    }
+    if (theme.id === "constraints-and-risks") {
+      return `Confidence and validation limit how far ${conceptPhrase} can travel`;
+    }
+    return `The literature frames protein AI through ${conceptPhrase}`;
+  }
+
+  if (kind === "general-biomed") {
+    if (theme.id === "methods-and-measurement") {
+      return `Methods and evidence quality centre on ${conceptPhrase}`;
+    }
+    if (theme.id === "findings-and-effects") {
+      return `The strongest reported signals cluster around ${conceptPhrase}`;
+    }
+    if (theme.id === "constraints-and-risks") {
+      return `Interpretation is constrained by ${conceptPhrase}`;
+    }
+    return `The literature frames the topic through ${conceptPhrase}`;
+  }
 
   if (theme.id === "methods-and-measurement") {
     return `Delivery research is concentrating on ${conceptPhrase}`;
@@ -553,8 +665,9 @@ function buildFindingsFromThemes(question: string, themes: ResearchTheme[], pape
       .map((id) => papers.find((paper) => paper.id === id))
       .filter((paper): paper is Paper => Boolean(paper));
     const details = strongestSentences(supportingPapers, queryKeywords, 3);
+    const kind = topicKind(question, supportingPapers.length ? supportingPapers : papers);
     const signals = themeSignals(theme.id, supportingPapers, question, 4);
-    const concepts = (signals.length ? signals : topConcepts(supportingPapers, question)).slice(0, 4);
+    const concepts = (signals.length ? signals : fallbackConcepts(question, supportingPapers)).slice(0, 4);
     const methodDetails = commonMethods(supportingPapers)
       .filter((method) => !/^journal article$/i.test(method))
       .slice(0, 2)
@@ -565,11 +678,11 @@ function buildFindingsFromThemes(question: string, themes: ResearchTheme[], pape
     return {
       id: `finding-${index + 1}`,
       title: findingTitleForTheme(theme, supportingPapers, question),
-      takeaway: truncate(teachingTakeawayForTheme(theme.id, concepts, supportingPapers.length), 240),
+      takeaway: truncate(teachingTakeawayForTheme(theme.id, concepts, supportingPapers.length, kind), 240),
       explanation: concepts.length
         ? `Across ${supportingPapers.length} retrieved source${supportingPapers.length === 1 ? "" : "s"}, this finding is connected to ${formatConcepts(concepts)}.`
         : `Across ${supportingPapers.length} retrieved source${supportingPapers.length === 1 ? "" : "s"}, this finding is visible in the highest-scoring abstracts.`,
-      whyItMatters: whyItMattersForTheme(theme.id, concepts),
+      whyItMatters: whyItMattersForTheme(theme.id, concepts, kind),
       supportingDetails,
       supportingPaperIds: theme.supportingPaperIds,
       evidenceLevel: theme.evidenceLevel,
