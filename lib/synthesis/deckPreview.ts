@@ -7,6 +7,7 @@ import type {
   ResearchTheme,
   SearchMethodology
 } from "@/lib/types/paper";
+import { finalizeDeckSlides } from "@/lib/synthesis/deckQuality";
 
 function truncate(text: string, maxLength: number): string {
   return text.length <= maxLength ? text : `${text.slice(0, maxLength - 3).trim()}...`;
@@ -107,7 +108,7 @@ export function buildDeckPreviewSlides(
       title: truncate(finding.title, 125),
       subtitle: `${finding.evidenceLevel} abstract-level signal based on ${supportingPapers.length} source${supportingPapers.length === 1 ? "" : "s"}`,
       bullets: [
-        `Bottom line: ${finding.takeaway}`,
+        `Answer: ${finding.takeaway}`,
         scientificDetails[0] || `Evidence: ${truncate(finding.explanation, 145)}`,
         `Implication: ${finding.whyItMatters}`,
         `Caveat: ${finding.limitations[0]}`
@@ -125,7 +126,7 @@ export function buildDeckPreviewSlides(
       title: truncate(theme.headline, 125),
       subtitle: `${theme.evidenceLevel} evidence signal based on ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
       bullets: [
-        `Bottom line: ${theme.summary}`,
+        `Answer: ${theme.summary}`,
         `Evidence: ${theme.methods.join(", ") || "metadata varies across records"}.`,
         `Implication: ${theme.implications.slice(0, 2).join(" ")}`,
         `Caveat: ${theme.limitations.join(" ")}`
@@ -143,7 +144,7 @@ export function buildDeckPreviewSlides(
       title: truncate(claim.claim, 125),
       subtitle: `${claim.confidence} confidence based on ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
       bullets: [
-        `Bottom line: ${claim.explanation}`,
+        `Answer: ${claim.explanation}`,
         `Evidence: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
         `Caveat: ${claim.limitations}`
       ],
@@ -153,7 +154,7 @@ export function buildDeckPreviewSlides(
   });
   const fallbackFindingSlides = findingSlides.length ? findingSlides : themeSlides.length ? themeSlides : claimSlides;
 
-  return [
+  const rawSlides: DeckPreviewSlide[] = [
     {
       id: "title",
       eyebrow: "EzResearch evidence deck",
@@ -169,7 +170,7 @@ export function buildDeckPreviewSlides(
     {
       id: "topic-primer",
       eyebrow: "Topic primer",
-      title: primer ? `What to know about ${primer.topic}` : "What to know before reading the findings",
+      title: primer ? `${primer.topic} needs a clear scientific map before the findings` : "The topic needs context before the findings",
       subtitle: "Plain-language orientation for a non-specialist audience",
       bullets: [
         primer?.overview || "The retrieved papers define the topic through the highest-scoring abstracts and metadata.",
@@ -182,7 +183,7 @@ export function buildDeckPreviewSlides(
     {
       id: "why-it-matters",
       eyebrow: "Why it matters",
-      title: primer ? `Why ${primer.topic} matters now` : "Why this topic matters now",
+      title: primer ? `${primer.topic} matters because methods, evidence, and translation are moving together` : "This topic matters because the evidence must be interpreted before it is used",
       subtitle: "The practical reason to care about the literature",
       bullets: [
         `Scientific significance: ${primer?.whyItMatters || "The literature is moving quickly, and the deck compresses the retrieved evidence into a presenter-friendly structure."}`,
@@ -197,7 +198,7 @@ export function buildDeckPreviewSlides(
       id: "executive-takeaway",
       eyebrow: "Answer first",
       title: topClaim
-        ? truncate(`The headline finding: ${topClaim}`, 125)
+        ? truncate(topClaim, 125)
         : "The search produced an auditable evidence base, but no strong claim passed synthesis.",
       subtitle: "The one-slide answer before the detail",
       bullets: [
@@ -214,7 +215,7 @@ export function buildDeckPreviewSlides(
     {
       id: "source-map",
       eyebrow: "Source map",
-      title: "Which papers support the story",
+      title: "The source map shows which papers carry the briefing",
       subtitle: "Use this slide for citation backup, not as presentation narration",
       bullets: paperInsights.length
         ? paperInsights.slice(0, 5).map((insight, index) => {
@@ -228,7 +229,7 @@ export function buildDeckPreviewSlides(
     {
       id: "evidence-base",
       eyebrow: "Source landscape",
-      title: "The strongest papers behind the presentation",
+      title: "The strongest records define the evidence boundary",
       subtitle: `${sourceMix(papers)} | ${evidenceMix(papers)}`,
       bullets: topPapers.map(
         (paper) =>
@@ -239,7 +240,7 @@ export function buildDeckPreviewSlides(
     {
       id: "what-to-watch",
       eyebrow: "What to watch",
-      title: "What remains unresolved after the current literature scan",
+      title: "The unresolved questions shape how far the findings can travel",
       subtitle: "Questions a presenter should be ready to answer",
       bullets: synthesis?.areasOfAgreement.length
         ? [
@@ -257,7 +258,7 @@ export function buildDeckPreviewSlides(
     {
       id: "methodology",
       eyebrow: "Methodology",
-      title: "How the deck was built",
+      title: "The deck is built from ranked abstracts and source metadata",
       subtitle: methodology.sources.join(" + "),
       bullets: [
         `Generated queries: ${methodology.generatedQueries.join("; ")}`,
@@ -272,7 +273,7 @@ export function buildDeckPreviewSlides(
     {
       id: "risks-and-next-steps",
       eyebrow: "Risks and next steps",
-      title: "A full research pass should validate methods, outcomes, and disagreement before decisions",
+      title: "Decision-grade use requires method, outcome, and disagreement checks",
       bullets: synthesis
         ? [...synthesis.uncertainties.slice(0, 3), ...synthesis.nextSteps.slice(0, 3)]
         : [
@@ -286,10 +287,12 @@ export function buildDeckPreviewSlides(
     {
       id: "references",
       eyebrow: "References",
-      title: "Retrieved paper metadata used in this deck",
+      title: "Retrieved paper metadata anchors the deck",
       bullets: papers.slice(0, 5).map((paper, index) => `${index + 1}. ${paperLabel(paper)}${paper.doi ? ` DOI: ${paper.doi}` : ""}`),
       citations: [],
       footnote: "References are generated only from retrieved metadata."
     }
   ];
+
+  return finalizeDeckSlides(rawSlides, { papers });
 }

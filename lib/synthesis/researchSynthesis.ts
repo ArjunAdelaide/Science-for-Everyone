@@ -453,6 +453,12 @@ function buildFindingsFromThemes(question: string, themes: ResearchTheme[], pape
     const details = strongestSentences(supportingPapers, queryKeywords, 3);
     const signals = themeSignals(theme.id, supportingPapers, question, 4);
     const concepts = (signals.length ? signals : topConcepts(supportingPapers, question)).slice(0, 4);
+    const methodDetails = commonMethods(supportingPapers)
+      .filter((method) => !/^journal article$/i.test(method))
+      .slice(0, 2)
+      .map((method) => `Method signal: ${method}`);
+    const conceptDetail = concepts.length ? [`Scientific signal: ${formatConcepts(concepts.slice(0, 3))}.`] : [];
+    const supportingDetails = Array.from(new Set([...details.slice(1), ...methodDetails, ...conceptDetail])).slice(0, 4);
 
     return {
       id: `finding-${index + 1}`,
@@ -462,7 +468,7 @@ function buildFindingsFromThemes(question: string, themes: ResearchTheme[], pape
         ? `Across ${supportingPapers.length} retrieved source${supportingPapers.length === 1 ? "" : "s"}, this finding is connected to ${formatConcepts(concepts)}.`
         : `Across ${supportingPapers.length} retrieved source${supportingPapers.length === 1 ? "" : "s"}, this finding is visible in the highest-scoring abstracts.`,
       whyItMatters: theme.implications[0],
-      supportingDetails: details.slice(1),
+      supportingDetails,
       supportingPaperIds: theme.supportingPaperIds,
       evidenceLevel: theme.evidenceLevel,
       limitations: theme.limitations

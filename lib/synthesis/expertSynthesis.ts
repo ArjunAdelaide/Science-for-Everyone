@@ -7,6 +7,7 @@ import type {
   SearchMethodology,
   TopicPrimer
 } from "@/lib/types/paper";
+import { polishDeckText } from "@/lib/synthesis/deckQuality";
 
 type ExpertSynthesisResult = {
   synthesis: ResearchSynthesis;
@@ -79,7 +80,7 @@ function buildExpertPrompt(question: string, methodology: SearchMethodology, pap
   return JSON.stringify(
     {
       task:
-        "Act as a faculty-level biomedical/life-sciences research intelligence swarm. Produce a presentation-ready synthesis for an academic medical audience.",
+        "Act as a faculty-level biomedical/life-sciences research intelligence team. Produce a polished, citation-auditable briefing for an academic medical audience.",
       nonNegotiables: [
         "Use only the supplied paper records. Do not invent citations, journals, authors, DOIs, statistics, effect sizes, clinical claims, or findings.",
         "Every finding must cite supportingPaperIds that exist in the supplied papers.",
@@ -88,14 +89,22 @@ function buildExpertPrompt(question: string, methodology: SearchMethodology, pap
         "Clearly preserve abstract-only limitations. If full-text methods/results are needed, say so.",
         "Prefer mechanistic explanation and study design interpretation over generic validity language.",
         "Avoid empty phrases such as 'more research is needed' unless you state exactly what needs validation.",
-        "For each finding, include at least one method/design detail and one scientific result or mechanism detail when the abstract supports it."
+        "For each finding, include at least one method/design detail and one scientific result or mechanism detail when the abstract supports it.",
+        "Before returning JSON, proofread every field for spelling, grammar, duplicated words, awkward phrasing, and vague AI filler.",
+        "Do not claim full-text analysis. This system only has abstracts and metadata.",
+        "Avoid overconfident language such as proves, guarantees, or conclusively demonstrates unless that exact claim is supported by the supplied record."
       ],
       agentRoles: {
         domainScientist:
           "Infer mechanisms, methods, biological/clinical meaning, and caveats from the abstracts without overclaiming.",
         evidenceAuditor: "Keep every claim grounded in paper IDs and downgrade confidence when support is thin.",
         narrativeStrategist: "Build a presentation arc: topic primer, why it matters, findings, implications, unresolved questions.",
-        deckWriter: "Write slide-ready titles and bullets that educate the audience, not just describe the pipeline."
+        slideStrategist:
+          "Turn each finding into one clear slide job. Titles should be answer-first, not labels like 'Finding 1' or 'Overview'.",
+        proofreaderEditor:
+          "Remove filler, repeated phrasing, typos, empty intensifiers, and awkward syntax while preserving scientific caution.",
+        finalDeckValidator:
+          "Check that titles are non-empty, bullets teach something specific, every cited paper ID is valid, and no unsupported full-text claim remains."
       },
       question,
       methodology,
@@ -117,7 +126,7 @@ function buildExpertPrompt(question: string, methodology: SearchMethodology, pap
         findings: [
           {
             id: "finding-1",
-            title: "assertive but cautious slide title",
+            title: "answer-first slide title, 8-14 words, not a section label",
             takeaway: "main finding in 1-2 sentences",
             explanation: "how the evidence supports this finding, including the biological/scientific logic",
             whyItMatters: "why this finding matters scientifically or clinically",
@@ -259,13 +268,16 @@ function extractResponseText(value: unknown): string {
 }
 
 function asString(value: unknown, fallback = ""): string {
-  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+  const text = typeof value === "string" && value.trim() ? value.trim() : fallback;
+  return polishDeckText(text);
 }
 
 function asStringArray(value: unknown, fallback: string[] = []): string[] {
   return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim())
-    : fallback;
+    ? value
+        .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+        .map((item) => polishDeckText(item))
+    : fallback.map((item) => polishDeckText(item));
 }
 
 function sanitizeTopicPrimer(value: unknown, fallback: TopicPrimer): TopicPrimer {
