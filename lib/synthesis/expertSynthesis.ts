@@ -38,6 +38,10 @@ function modelName(): string {
   return process.env.OPENAI_RESEARCH_MODEL || DEFAULT_MODEL;
 }
 
+function expertFallbackWarning(): string {
+  return "Expert synthesis was unavailable, so EzResearch used deterministic abstract-and-metadata synthesis. Citations and claims remain grounded in retrieved records.";
+}
+
 function candidateModels(): string[] {
   return Array.from(new Set([modelName(), "gpt-4.1", "gpt-4.1-mini", "gpt-5"].filter(Boolean)));
 }
@@ -424,7 +428,7 @@ export async function enhanceSynthesisWithExpertAgents(
     return {
       synthesis: baseSynthesis,
       usedExpertModel: false,
-      warning: !process.env.OPENAI_API_KEY ? "Expert synthesis skipped because OPENAI_API_KEY is not configured." : undefined
+      warning: !process.env.OPENAI_API_KEY ? "Expert synthesis is not configured, so deterministic synthesis was used." : undefined
     };
   }
 
@@ -454,7 +458,7 @@ export async function enhanceSynthesisWithExpertAgents(
     return {
       synthesis: baseSynthesis,
       usedExpertModel: false,
-      warning: error instanceof Error ? error.message : "Expert synthesis failed; deterministic synthesis was used."
+      warning: expertFallbackWarning()
     };
   }
 }
