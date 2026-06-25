@@ -106,19 +106,28 @@ const THEME_DEFINITIONS = [
 const STOPWORDS = new Set([
   "about",
   "after",
+  "also",
   "analysis",
+  "and",
   "article",
+  "as",
   "based",
   "between",
   "could",
   "data",
+  "editing",
   "effect",
+  "for",
   "from",
   "have",
+  "has",
+  "in",
   "into",
+  "its",
   "journal",
   "method",
   "methods",
+  "of",
   "paper",
   "papers",
   "publication",
@@ -129,10 +138,13 @@ const STOPWORDS = new Set([
   "study",
   "studies",
   "that",
+  "the",
   "their",
   "these",
   "this",
+  "to",
   "using",
+  "we",
   "with",
   "were",
   "what",
@@ -232,7 +244,7 @@ function strongestSentences(papers: Paper[], queryKeywords: string[], limit: num
       const actionHits = /(improv|increase|decrease|reduce|show|demonstrat|suggest|enable|associate|identify)/i.test(sentence) ? 1 : 0;
       return { sentence: sentence.trim(), paper, score: keywordHits * 3 + actionHits + (paper.score?.finalScore || 0) / 100 };
     })
-    .filter((item) => item.sentence.length > 32)
+    .filter((item) => item.sentence.length > 32 && !isWeakAbstractSentence(item.sentence))
     .sort((a, b) => b.score - a.score);
 
   const unique: string[] = [];
@@ -243,6 +255,12 @@ function strongestSentences(papers: Paper[], queryKeywords: string[], limit: num
   });
 
   return unique.slice(0, limit);
+}
+
+function isWeakAbstractSentence(sentence: string): boolean {
+  return /of paramount importance|rapid advancement|profound transformation|significant implications|nowadays|has instigated|emerging tool for genome/i.test(
+    sentence
+  );
 }
 
 function confidenceFor(papers: Paper[]): ResearchTheme["evidenceLevel"] {
@@ -273,7 +291,7 @@ function commonMethods(papers: Paper[]): string[] {
   const text = papers.map(textForPaper).join(" ").toLowerCase();
   const matched = [...SCIENTIFIC_SIGNAL_TERMS, ...methodTerms].filter((term) => text.includes(term.toLowerCase()));
   const publicationTypes = papers.flatMap((paper) => paper.publicationTypes).filter(Boolean);
-  return Array.from(new Set([...matched, ...publicationTypes])).slice(0, 4);
+  return uniqueConcepts([...matched, ...publicationTypes]).slice(0, 4);
 }
 
 function scientificSignals(papers: Paper[], limit = 5): string[] {
@@ -286,7 +304,30 @@ function informativeMethod(paper: Paper): string {
     return paper.method;
   }
 
-  return scientificSignals([paper], 4).join(", ") || "The abstract metadata does not specify a detailed experimental design.";
+  return uniqueConcepts(scientificSignals([paper], 4)).join(", ") || "The abstract metadata does not specify a detailed experimental design.";
+}
+
+function paperTeachingTakeaway(paper: Paper, question: string): string {
+  const signals = uniqueConcepts(scientificSignals([paper], 4));
+  const usefulSentence = strongestSentences([paper], extractKeywords(question), 1)[0];
+  const sourceType = paper.publicationTypes[0] || "scholarly record";
+
+  if (signals.length) {
+    return `${paper.year || "Recent"} ${sourceType} contributing evidence on ${formatConcepts(signals.slice(0, 3))}.`;
+  }
+  if (usefulSentence) {
+    return truncate(usefulSentence, 150);
+  }
+
+  return `${paper.year || "Recent"} source ranked as relevant to the question; abstract detail is limited and needs full-text review.`;
+}
+
+function safePaperFinding(paper: Paper, question: string): string {
+  if (paper.keyFinding && paper.keyFinding.length <= 180 && !isWeakAbstractSentence(paper.keyFinding)) {
+    return paper.keyFinding;
+  }
+
+  return paperTeachingTakeaway(paper, question);
 }
 
 function themeSignals(themeId: string, papers: Paper[], question: string, limit = 4): string[] {
@@ -309,17 +350,36 @@ function topConcepts(papers: Paper[], question: string): string[] {
       counts.set(word, (counts.get(word) || 0) + 1);
     });
 
-  return Array.from(counts.entries())
+  return uniqueConcepts(
+    Array.from(counts.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6)
-    .map(([word]) => word);
+      .map(([word]) => word)
+  );
+}
+
+function uniqueConcepts(concepts: string[]): string[] {
+  const seen = new Set<string>();
+
+  return concepts.filter((concept) => {
+    const normalized = concept
+      .toLowerCase()
+      .replace(/\bvectors\b/g, "vector")
+      .replace(/\bnanoparticles\b/g, "nanoparticle")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
 }
 
 function formatConcepts(concepts: string[]): string {
-  if (concepts.length === 0) return "the dominant concepts in the retrieved abstracts";
-  if (concepts.length === 1) return concepts[0];
-  if (concepts.length === 2) return `${concepts[0]} and ${concepts[1]}`;
-  return `${concepts.slice(0, -1).join(", ")}, and ${concepts[concepts.length - 1]}`;
+  const cleaned = uniqueConcepts(concepts);
+  if (cleaned.length === 0) return "the dominant concepts in the retrieved abstracts";
+  if (cleaned.length === 1) return cleaned[0];
+  if (cleaned.length === 2) return `${cleaned[0]} and ${cleaned[1]}`;
+  return `${cleaned.slice(0, -1).join(", ")}, and ${cleaned[cleaned.length - 1]}`;
 }
 
 function topicLabel(question: string): string {
@@ -351,15 +411,15 @@ function buildTopicPrimer(question: string, papers: Paper[]): TopicPrimer {
   return {
     topic,
     overview: coreTerms.length
-      ? `${topic} is presented here as an active research area shaped by ${formatConcepts(coreTerms.slice(0, 4))}. The retrieved abstracts suggest the field is focused on how delivery vehicles, editing cargo, biological targets, and safety constraints interact to determine whether genome editing can move from experimental systems toward reliable therapeutic use.`
+      ? `${topic} is best read as a delivery systems problem: payload, carrier, target tissue, and safety constraints all shape whether an experimental signal becomes useful.`
       : `${topic} is presented here through the retrieved abstracts and metadata. The evidence base is too thin for a broad primer, so the deck focuses on the highest-scoring records and their directly stated claims.`,
     whyItMatters: /clinical|patient|therapy|therapeutic|disease|treatment|delivery|crispr|drug|vaccine|diagnos/i.test(
       `${question} ${papers.map(textForPaper).join(" ")}`
     )
-      ? `This matters because decisions in biomedical research often depend on whether promising mechanisms, methods, or delivery approaches can translate from controlled studies into reliable biological or clinical impact.`
+      ? `This matters because delivery quality can decide whether a strong biological mechanism becomes a useful therapy, tool, or product.`
       : `This matters because the literature is moving faster than most readers can track manually; a useful presentation needs to compress the field into clear concepts, findings, and unresolved questions.`,
     currentFocus: focus,
-    keyTerms: Array.from(new Set([...signals, ...concepts])).slice(0, 8)
+    keyTerms: uniqueConcepts([...signals, ...concepts]).slice(0, 8)
   };
 }
 
@@ -379,10 +439,52 @@ function strongestSentenceForTheme(papers: Paper[], queryKeywords: string[], pat
         : 0;
       return { sentence: sentence.trim(), score: patternHits * 5 + keywordHits * 2 + actionHits + (paper.score?.finalScore || 0) / 100 };
     })
-    .filter((item) => item.sentence.length > 32)
+    .filter((item) => item.sentence.length > 32 && !isWeakAbstractSentence(item.sentence))
     .sort((a, b) => b.score - a.score);
 
   return sentences[0]?.sentence || strongestSentence(papers, queryKeywords);
+}
+
+function teachingTakeawayForTheme(themeId: string, concepts: string[], sourceCount: number): string {
+  const conceptPhrase = formatConcepts(concepts.slice(0, 3));
+  const sourceText = `${sourceCount} retrieved source${sourceCount === 1 ? "" : "s"}`;
+
+  if (themeId === "methods-and-measurement") {
+    return `Evidence clusters around ${conceptPhrase}. The question is which delivery method moves payload into target cells safely and controllably.`;
+  }
+  if (themeId === "findings-and-effects") {
+    return `The clearest performance signal is ${conceptPhrase}. Treat outcomes as delivery-dependent, not universal across every method or model.`;
+  }
+  if (themeId === "constraints-and-risks") {
+    return `The main bottleneck is ${conceptPhrase}. These constraints decide whether an abstract-level signal can become decision-grade evidence.`;
+  }
+  if (themeId === "application-and-translation") {
+    return `The translational story centres on ${conceptPhrase}. The key test is whether it works in the biological setting that matters.`;
+  }
+  if (themeId === "evidence-synthesis") {
+    return `Review-level records separate field patterns from isolated studies, but conclusions depend on how ${conceptPhrase} are defined.`;
+  }
+
+  return `Across ${sourceText}, the teaching signal is ${conceptPhrase}; treat it as an abstract-level map, not a final verdict.`;
+}
+
+function whyItMattersForTheme(themeId: string, concepts: string[]): string {
+  const conceptPhrase = formatConcepts(concepts.slice(0, 3));
+
+  if (themeId === "methods-and-measurement") {
+    return `Methods matter because changing the delivery vehicle can change biodistribution, cargo capacity, durability, and safety, even when the editing system is nominally the same.`;
+  }
+  if (themeId === "findings-and-effects") {
+    return `Performance matters because editing efficiency, specificity, and biological context decide whether a result is scientifically interesting or practically usable.`;
+  }
+  if (themeId === "constraints-and-risks") {
+    return `Risk matters because dose, toxicity, immune response, and off-target concerns can erase the value of otherwise strong editing activity.`;
+  }
+  if (themeId === "application-and-translation") {
+    return `Translation matters because the same platform can look different across tissues, diseases, model systems, and clinical use cases.`;
+  }
+
+  return `This matters because ${conceptPhrase} helps explain why the retrieved papers may agree on the topic but differ in usefulness for decisions.`;
 }
 
 function buildTheme(
@@ -458,16 +560,16 @@ function buildFindingsFromThemes(question: string, themes: ResearchTheme[], pape
       .slice(0, 2)
       .map((method) => `Method signal: ${method}`);
     const conceptDetail = concepts.length ? [`Scientific signal: ${formatConcepts(concepts.slice(0, 3))}.`] : [];
-    const supportingDetails = Array.from(new Set([...details.slice(1), ...methodDetails, ...conceptDetail])).slice(0, 4);
+    const supportingDetails = Array.from(new Set([...methodDetails, ...conceptDetail, ...details.slice(0, 2)])).slice(0, 4);
 
     return {
       id: `finding-${index + 1}`,
       title: findingTitleForTheme(theme, supportingPapers, question),
-      takeaway: truncate(details[0] || theme.summary, 240),
+      takeaway: truncate(teachingTakeawayForTheme(theme.id, concepts, supportingPapers.length), 240),
       explanation: concepts.length
         ? `Across ${supportingPapers.length} retrieved source${supportingPapers.length === 1 ? "" : "s"}, this finding is connected to ${formatConcepts(concepts)}.`
         : `Across ${supportingPapers.length} retrieved source${supportingPapers.length === 1 ? "" : "s"}, this finding is visible in the highest-scoring abstracts.`,
-      whyItMatters: theme.implications[0],
+      whyItMatters: whyItMattersForTheme(theme.id, concepts),
       supportingDetails,
       supportingPaperIds: theme.supportingPaperIds,
       evidenceLevel: theme.evidenceLevel,
@@ -542,10 +644,12 @@ export function buildResearchSynthesis(
       paperId: paper.id,
       roleInLiterature: paper.publicationTypes.join(", ") || "Retrieved scholarly record",
       studyDesignOrApproach: informativeMethod(paper),
-      mainResult: paper.keyFinding || strongestSentence([paper], extractKeywords(question)),
-      mechanismOrExplanation: paper.abstract ? truncate(paper.abstract, 220) : "Mechanism or explanation not available from abstract metadata.",
+      mainResult: safePaperFinding(paper, question),
+      mechanismOrExplanation: scientificSignals([paper], 4).length
+        ? `Abstract signal includes ${formatConcepts(scientificSignals([paper], 4))}.`
+        : "Mechanism or explanation not available from abstract metadata.",
       limitations: paper.limitation || "Full-text review is required to confirm methods, endpoints, and caveats.",
-      presentableTakeaway: paper.keyFinding || strongestSentence([paper], extractKeywords(question))
+      presentableTakeaway: safePaperFinding(paper, question)
     })),
     synthesisMode: "deterministic",
     areasOfAgreement: findings.slice(0, 3).map((finding) => `${finding.title}: ${finding.takeaway}`),

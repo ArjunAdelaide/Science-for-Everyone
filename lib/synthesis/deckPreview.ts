@@ -22,10 +22,6 @@ function cite(paper?: Paper): string {
   return `${leadAuthor} et al., ${paper.year || "n.d."}`;
 }
 
-function paperLabel(paper: Paper): string {
-  return `${truncate(paper.title, 92)} (${paper.year || "n.d."}, ${paper.journal || paper.source})`;
-}
-
 function sourceMix(papers: Paper[]): string {
   const counts = papers.reduce<Record<string, number>>((acc, paper) => {
     const source = paper.source === "pubmed" ? "PubMed" : paper.source === "openalex" ? "OpenAlex" : "Demo";
@@ -71,17 +67,12 @@ function scientificDetailsForFinding(finding: ResearchFinding, synthesis?: Resea
     if (insight.studyDesignOrApproach && !/^(article|journal article|review|Publication type metadata:.*)$/i.test(insight.studyDesignOrApproach.trim())) {
       detailSet.add(`Method: ${truncate(insight.studyDesignOrApproach, 145)}`);
     }
-    if (insight.mainResult) detailSet.add(`Result: ${truncate(insight.mainResult, 145)}`);
+    if (insight.mainResult) detailSet.add(`Source context: ${truncate(insight.mainResult, 145)}`);
     if (insight.mechanismOrExplanation) detailSet.add(`Mechanism: ${truncate(insight.mechanismOrExplanation, 145)}`);
   });
 
   finding.supportingDetails.slice(0, 3).forEach((detail) => detailSet.add(`Evidence detail: ${detail}`));
   return Array.from(detailSet).slice(0, 2);
-}
-
-function sourceRole(paper: Paper): string {
-  const reason = paper.reasonIncluded || paper.score?.explanation[0] || paper.abstract || paper.title;
-  return truncate(reason, 118);
 }
 
 export function buildDeckPreviewSlides(
@@ -97,39 +88,40 @@ export function buildDeckPreviewSlides(
   const findings = synthesis?.findings || [];
   const primer = synthesis?.topicPrimer;
   const paperInsights = synthesis?.paperInsights || [];
-  const topClaim = findings[0]?.title || claims[0]?.claim;
-  const findingSlides = findings.slice(0, 5).map((finding, index) => {
+  const findingSlides = findings.slice(0, 3).map((finding, index) => {
     const supportingPapers = findingPapers(finding, papers);
     const scientificDetails = scientificDetailsForFinding(finding, synthesis);
 
     return {
       id: `finding-${index + 1}`,
-      eyebrow: `Finding ${index + 1}`,
+      eyebrow: `Teaching point ${index + 1}`,
       title: truncate(finding.title, 125),
-      subtitle: `${finding.evidenceLevel} abstract-level signal based on ${supportingPapers.length} source${supportingPapers.length === 1 ? "" : "s"}`,
+      subtitle: `${finding.evidenceLevel} signal | ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
       bullets: [
-        `Answer: ${finding.takeaway}`,
-        scientificDetails[0] || `Evidence: ${truncate(finding.explanation, 145)}`,
-        `Implication: ${finding.whyItMatters}`,
-        `Caveat: ${finding.limitations[0]}`
+        `What to learn: ${finding.takeaway}`,
+        scientificDetails[0] || `How the evidence supports it: ${truncate(finding.explanation, 145)}`,
+        scientificDetails[1] || `Why it matters: ${truncate(finding.whyItMatters, 145)}`,
+        `Watch-out: ${finding.limitations[0]}`,
+        `Source signal: ${supportingPapers.slice(0, 2).map(cite).join("; ") || "mapped abstracts unavailable"}`
       ],
       citations: [],
       footnote: "Claim is generated only from retrieved abstract and metadata fields."
     };
   });
-  const themeSlides = themes.slice(0, 4).map((theme, index) => {
+  const themeSlides = themes.slice(0, 3).map((theme, index) => {
     const supportingPapers = themePapers(theme, papers);
 
     return {
       id: `finding-${index + 1}`,
-      eyebrow: `Theme ${index + 1}`,
+      eyebrow: `Teaching point ${index + 1}`,
       title: truncate(theme.headline, 125),
-      subtitle: `${theme.evidenceLevel} evidence signal based on ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
+      subtitle: `${theme.evidenceLevel} signal | ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
       bullets: [
-        `Answer: ${theme.summary}`,
-        `Evidence: ${theme.methods.join(", ") || "metadata varies across records"}.`,
-        `Implication: ${theme.implications.slice(0, 2).join(" ")}`,
-        `Caveat: ${theme.limitations.join(" ")}`
+        `What to learn: ${theme.summary}`,
+        `Method signal: ${theme.methods.join(", ") || "metadata varies across records"}.`,
+        `Why it matters: ${theme.implications.slice(0, 2).join(" ")}`,
+        `Watch-out: ${theme.limitations.join(" ")}`,
+        `Source signal: ${supportingPapers.slice(0, 2).map(cite).join("; ") || "mapped abstracts unavailable"}`
       ],
       citations: [],
       footnote: "Claim is generated only from retrieved abstract and metadata fields."
@@ -140,13 +132,13 @@ export function buildDeckPreviewSlides(
 
     return {
       id: `finding-${index + 1}`,
-      eyebrow: `Finding ${index + 1}`,
+      eyebrow: `Teaching point ${index + 1}`,
       title: truncate(claim.claim, 125),
       subtitle: `${claim.confidence} confidence based on ${supportingPapers.length} mapped source${supportingPapers.length === 1 ? "" : "s"}`,
       bullets: [
-        `Answer: ${claim.explanation}`,
-        `Evidence: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
-        `Caveat: ${claim.limitations}`
+        `What to learn: ${claim.explanation}`,
+        `Source signal: ${supportingPapers.map(cite).join("; ") || "no supporting papers mapped by the synthesis step"}.`,
+        `Watch-out: ${claim.limitations}`
       ],
       citations: [],
       footnote: "Claim is generated only from retrieved abstract and metadata fields."
@@ -159,136 +151,56 @@ export function buildDeckPreviewSlides(
       id: "title",
       eyebrow: "EzResearch evidence deck",
       title: truncate(question, 125),
-      subtitle: `${methodology.dateRange.startYear}-${methodology.dateRange.endYear} | ${papers.length} sources analysed`,
+      subtitle: `${methodology.dateRange.startYear}-${methodology.dateRange.endYear} | ${papers.length} sources | short teaching brief`,
       bullets: [
-        primer?.whyItMatters || "This topic matters because the retrieved literature points to active scientific or clinical uncertainty.",
-        findings[0] ? `Central thesis: ${findings[0].title}.` : "Central thesis: the retrieved evidence is too sparse for a strong source-backed answer.",
-        synthesis?.keyTakeaways[0] || `${papers.length} ranked scholarly records form the evidence base for this briefing.`
+        findings[0] ? `Main answer: ${findings[0].takeaway}` : "Main answer: the current records are too sparse for a strong source-backed claim.",
+        primer?.whyItMatters || "Use this as a source-grounded learning deck, not a full systematic review.",
+        `Evidence boundary: abstract-and-metadata review of ${papers.length} ranked scholarly record${papers.length === 1 ? "" : "s"}.`
       ],
-      citations: []
+      citations: [],
+      footnote: "Short teaching deck; every claim should be validated against full text before high-stakes use."
     },
     {
       id: "topic-primer",
-      eyebrow: "Topic primer",
-      title: primer ? `${primer.topic} needs a clear scientific map before the findings` : "The topic needs context before the findings",
-      subtitle: "Plain-language orientation for a non-specialist audience",
+      eyebrow: "What this is",
+      title: primer ? `${primer.topic} in plain English` : "The topic in plain English",
+      subtitle: "The minimum context needed before the findings",
       bullets: [
-        primer?.overview || "The retrieved papers define the topic through the highest-scoring abstracts and metadata.",
+        `Core idea: ${primer?.overview || "The retrieved papers define the topic through the highest-scoring abstracts and metadata."}`,
         ...(primer?.currentFocus.slice(0, 2).map((focus) => `Current focus: ${focus}`) || []),
-        primer?.keyTerms.length ? `Key terms: ${primer.keyTerms.slice(0, 8).join(", ")}.` : "Key terms were limited in the retrieved metadata."
+        primer?.keyTerms.length ? `Vocabulary: ${primer.keyTerms.slice(0, 8).join(", ")}.` : "Vocabulary: key terms were limited in the retrieved metadata.",
+        primer?.whyItMatters ? `Why it matters: ${primer.whyItMatters}` : `Evidence base: ${sourceMix(papers) || "available scholarly sources"}.`
       ],
       citations: [],
       footnote: "Primer is generated from retrieved titles, abstracts, publication types, and metadata."
     },
-    {
-      id: "why-it-matters",
-      eyebrow: "Why it matters",
-      title: primer ? `${primer.topic} matters because methods, evidence, and translation are moving together` : "This topic matters because the evidence must be interpreted before it is used",
-      subtitle: "The practical reason to care about the literature",
-      bullets: [
-        `Scientific significance: ${primer?.whyItMatters || "The literature is moving quickly, and the deck compresses the retrieved evidence into a presenter-friendly structure."}`,
-        `Evidence base: ${papers.length} ranked source${papers.length === 1 ? "" : "s"} from ${sourceMix(papers) || "available scholarly sources"}.`,
-        findings[0]
-          ? `Opening finding: ${findings[0].title}.`
-          : "No strong finding was generated from the current evidence base."
-      ],
-      citations: []
-    },
-    {
-      id: "executive-takeaway",
-      eyebrow: "Answer first",
-      title: topClaim
-        ? truncate(topClaim, 125)
-        : "The search produced an auditable evidence base, but no strong claim passed synthesis.",
-      subtitle: "The one-slide answer before the detail",
-      bullets: [
-        synthesis?.executiveAnswer || `${papers.length} likely scholarly records were analysed after deduplication, preprint filtering, and transparent scoring.`,
-        ...(synthesis?.keyTakeaways.slice(0, 2).map((takeaway) => `Takeaway: ${takeaway}`) || []),
-        synthesis?.uncertainties[0]
-          ? `Critical caveat: ${synthesis.uncertainties[0]}`
-          : "Critical caveat: abstract-only analysis cannot replace full-text methods review."
-      ],
-      citations: [],
-      footnote: "Takeaway is constrained to retrieved metadata and abstracts."
-    },
     ...fallbackFindingSlides,
     {
-      id: "source-map",
-      eyebrow: "Source map",
-      title: "The source map shows which papers carry the briefing",
-      subtitle: "Use this slide for citation backup, not as presentation narration",
-      bullets: paperInsights.length
-        ? paperInsights.slice(0, 5).map((insight, index) => {
-            const paper = papers.find((candidate) => candidate.id === insight.paperId);
-            return `${index + 1}. ${cite(paper)} - ${truncate(insight.presentableTakeaway || insight.mainResult, 138)}`;
-          })
-        : topPapers.slice(0, 5).map((paper, index) => `${index + 1}. ${cite(paper)} - ${sourceRole(paper)}`),
-      citations: [],
-      footnote: "Paper roles are constrained to retrieved abstract and metadata fields."
-    },
-    {
-      id: "evidence-base",
-      eyebrow: "Source landscape",
-      title: "The strongest records define the evidence boundary",
+      id: "evidence-and-limits",
+      eyebrow: "Evidence and limits",
+      title: "Use the findings as a teaching map, not a final review",
       subtitle: `${sourceMix(papers)} | ${evidenceMix(papers)}`,
-      bullets: topPapers.map(
-        (paper) =>
-          `${paper.score?.finalScore ?? "n/a"}/100 - ${truncate(paper.title, 86)} (${paper.year || "n.d."})`
-      ),
-      citations: []
-    },
-    {
-      id: "what-to-watch",
-      eyebrow: "What to watch",
-      title: "The unresolved questions shape how far the findings can travel",
-      subtitle: "Questions a presenter should be ready to answer",
-      bullets: synthesis?.areasOfAgreement.length
-        ? [
-            "Areas where the retrieved set points in a similar direction:",
-            ...synthesis.areasOfAgreement.slice(0, 2),
-            ...(synthesis.uncertainties.slice(0, 2) || [])
-          ]
-        : [
-        "Which findings persist after full-text review?",
-        "Which methods, models, populations, or outcome measures explain disagreement?",
-        "Which findings are mature enough for decisions, and which are still early signals?"
-      ],
-      citations: []
-    },
-    {
-      id: "methodology",
-      eyebrow: "Methodology",
-      title: "The deck is built from ranked abstracts and source metadata",
-      subtitle: methodology.sources.join(" + "),
       bullets: [
-        `Generated queries: ${methodology.generatedQueries.join("; ")}`,
+        paperInsights.length
+          ? `Strongest source: ${(() => {
+              const insight = paperInsights[0];
+              const paper = papers.find((candidate) => candidate.id === insight.paperId);
+              return `${cite(paper)} - ${truncate(insight.presentableTakeaway || insight.mainResult, 120)}`;
+            })()}`
+          : `Strongest source: ${topPapers[0] ? `${cite(topPapers[0])} - ${truncate(topPapers[0].title, 120)}` : "no ranked papers available"}`,
+        ...paperInsights.slice(1, 3).map((insight, index) => {
+            const paper = papers.find((candidate) => candidate.id === insight.paperId);
+            return `Supporting source ${index + 2}: ${cite(paper)} - ${truncate(insight.presentableTakeaway || insight.mainResult, 110)}`;
+          }),
+        paperInsights.length === 0 && topPapers[1]
+          ? `Supporting source: ${cite(topPapers[1])} - ${truncate(topPapers[1].title, 110)}`
+          : "",
+        `Method note: queries included ${methodology.generatedQueries.slice(0, 2).join("; ")}.`,
         methodology.includePreprints
-          ? "Preprints were allowed when retrieved."
-          : "Likely preprints/repository records were excluded when metadata supported that inference.",
-        "Ranking uses relevance, recency, publication type, citation count, and source-quality signals.",
-        "Likely peer-reviewed status is inferred from publication/source metadata, not asserted with certainty."
-      ],
-      citations: []
-    },
-    {
-      id: "risks-and-next-steps",
-      eyebrow: "Risks and next steps",
-      title: "Decision-grade use requires method, outcome, and disagreement checks",
-      bullets: synthesis
-        ? [...synthesis.uncertainties.slice(0, 3), ...synthesis.nextSteps.slice(0, 3)]
-        : [
-        "Which findings persist after full-text review?",
-        "Which methods, models, populations, or outcomes explain disagreement?",
-        "Are newer papers missing from PubMed/OpenAlex coverage or metadata delays?",
-        "Which claims require deeper validation before use in a decision or publication?"
-      ],
-      citations: []
-    },
-    {
-      id: "references",
-      eyebrow: "References",
-      title: "Retrieved paper metadata anchors the deck",
-      bullets: papers.slice(0, 5).map((paper, index) => `${index + 1}. ${paperLabel(paper)}${paper.doi ? ` DOI: ${paper.doi}` : ""}`),
+          ? "Limit: preprints were allowed when retrieved, so publication status needs review."
+          : "Limit: likely preprints were excluded when metadata supported that inference.",
+        synthesis?.uncertainties[0] || "Limit: abstracts omit details that can change interpretation, including methods, endpoints, and negative findings."
+      ].filter(Boolean),
       citations: [],
       footnote: "References are generated only from retrieved metadata."
     }

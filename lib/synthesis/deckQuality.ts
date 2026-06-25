@@ -30,8 +30,23 @@ export function polishDeckText(value: string | undefined, fallback = ""): string
     .replace(/\befficacyy\b/gi, "efficacy")
     .replace(/\bmethodolgy\b/gi, "methodology")
     .replace(/\bscintific\b/gi, "scientific")
+    .replace(/\bquesitons\b/gi, "questions")
+    .replace(/\bquestons\b/gi, "questions")
+    .replace(/\bcurent\b/gi, "current")
+    .replace(/\bcrrent\b/gi, "current")
+    .replace(/\btherapuetic\b/gi, "therapeutic")
+    .replace(/\btheraputic\b/gi, "therapeutic")
     .replace(/\bmore research is needed\b/gi, "full-text validation should clarify the remaining uncertainty")
     .replace(/\bthis area is evolving\b/gi, "the retrieved abstracts show a changing evidence base")
+    .replace(/\brapidly evolving\b/gi, "changing")
+    .replace(/\bpromising\b/gi, "source-backed")
+    .replace(/\bcrispr\b/gi, "CRISPR")
+    .replace(/\bCas9\b/gi, "Cas9")
+    .replace(/\baav\b/gi, "AAV")
+    .replace(/\brna\b/gi, "RNA")
+    .replace(/\bdna\b/gi, "DNA")
+    .replace(/\blnp\b/gi, "LNP")
+    .replace(/\brnp\b/gi, "RNP")
     .replace(/\bit is important to note that\b/gi, "")
     .replace(/\bfull[-\s]?text analysis\b/gi, "abstract-and-metadata analysis")
     .replace(/\bfull[-\s]?text reviewed\b/gi, "abstract-and-metadata reviewed")
@@ -146,7 +161,7 @@ export function validateDeckSlides(slides: DeckPreviewSlide[], papers: Paper[] =
     if (/\b([\w'-]+)\s+\1\b/i.test(searchableText)) {
       errors.push(`Slide ${slide.id} contains repeated words.`);
     }
-    if (/\b(presentation-ready|deck starts|following finding slides|more research is needed|this area is evolving)\b/i.test(searchableText)) {
+    if (/\b(presentation-ready|deck starts|following finding slides|more research is needed|this area is evolving|rapidly evolving)\b/i.test(searchableText)) {
       errors.push(`Slide ${slide.id} contains generic briefing filler.`);
     }
     slide.citations.forEach((citation) => {

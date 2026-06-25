@@ -142,7 +142,8 @@ NCBI_TOOL=EzResearch
 OPENALEX_MAILTO=
 OPENAI_API_KEY=
 OPENAI_RESEARCH_MODEL=gpt-4.1
-EZRESEARCH_ENABLE_EXPERT_SYNTHESIS=true
+OPENAI_EXPERT_TIMEOUT_MS=8000
+EZRESEARCH_ENABLE_EXPERT_SYNTHESIS=false
 EZRESEARCH_ENABLE_MOCK_FALLBACK=true
 ```
 
@@ -151,9 +152,10 @@ Notes:
 - PubMed and OpenAlex can work without keys for the MVP.
 - NCBI recommends setting an email/tool name.
 - `NCBI_API_KEY` improves NCBI rate limits.
-- `OPENAI_API_KEY` in `.env.local` enables the optional expert-agent synthesis layer.
+- `OPENAI_API_KEY` is optional. Expert synthesis only runs when this key is valid and `EZRESEARCH_ENABLE_EXPERT_SYNTHESIS=true`.
 - `OPENAI_RESEARCH_MODEL` controls the model used for expert synthesis.
-- Set `EZRESEARCH_ENABLE_EXPERT_SYNTHESIS=false` to force deterministic synthesis.
+- `OPENAI_EXPERT_TIMEOUT_MS` caps expert synthesis latency before deterministic fallback.
+- Keep `EZRESEARCH_ENABLE_EXPERT_SYNTHESIS=false` for fast portfolio demos without OpenAI latency.
 - Set `EZRESEARCH_ENABLE_MOCK_FALLBACK=false` for strict live-data-only behavior.
 
 ## Deploying to Netlify

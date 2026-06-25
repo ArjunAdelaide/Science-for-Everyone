@@ -29,14 +29,26 @@ type ExpertResponse = {
 
 const DEFAULT_MODEL = "gpt-4.1";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-const EXPERT_SYNTHESIS_TIMEOUT_MS = 35_000;
+const DEFAULT_EXPERT_SYNTHESIS_TIMEOUT_MS = 8_000;
+
+class ExpertSynthesisApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "ExpertSynthesisApiError";
+  }
+}
 
 function expertSynthesisEnabled(): boolean {
-  return Boolean(process.env.OPENAI_API_KEY) && process.env.EZRESEARCH_ENABLE_EXPERT_SYNTHESIS !== "false";
+  return Boolean(process.env.OPENAI_API_KEY) && process.env.EZRESEARCH_ENABLE_EXPERT_SYNTHESIS === "true";
 }
 
 function modelName(): string {
   return process.env.OPENAI_RESEARCH_MODEL || DEFAULT_MODEL;
+}
+
+function expertSynthesisTimeoutMs(): number {
+  const configured = Number(process.env.OPENAI_EXPERT_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured >= 3000 ? configured : DEFAULT_EXPERT_SYNTHESIS_TIMEOUT_MS;
 }
 
 function expertFallbackWarning(): string {
@@ -84,11 +96,12 @@ function buildExpertPrompt(question: string, methodology: SearchMethodology, pap
       nonNegotiables: [
         "Use only the supplied paper records. Do not invent citations, journals, authors, DOIs, statistics, effect sizes, clinical claims, or findings.",
         "Every finding must cite supportingPaperIds that exist in the supplied papers.",
-        "The output should teach an intelligent non-specialist what the topic is, why it matters, what recent papers appear to show, and what remains uncertain.",
-        "Write like a publishable academic medical briefing: precise, explanatory, cautious, and useful for a presenter.",
+        "The output must directly answer the user's question or keyword search. Do not hide behind methodology language.",
+        "The deck should be short and information-dense: teach mechanisms, methods, implications, and caveats in plain language.",
+        "Write like a senior biomedical analyst preparing a five-minute teaching briefing: precise, direct, explanatory, and useful aloud.",
         "Clearly preserve abstract-only limitations. If full-text methods/results are needed, say so.",
         "Prefer mechanistic explanation and study design interpretation over generic validity language.",
-        "Avoid empty phrases such as 'more research is needed' unless you state exactly what needs validation.",
+        "Avoid empty phrases such as 'more research is needed', 'rapidly evolving', or 'promising' unless you state exactly what source-backed detail makes that true.",
         "For each finding, include at least one method/design detail and one scientific result or mechanism detail when the abstract supports it.",
         "Before returning JSON, proofread every field for spelling, grammar, duplicated words, awkward phrasing, and vague AI filler.",
         "Do not claim full-text analysis. This system only has abstracts and metadata.",
@@ -98,9 +111,9 @@ function buildExpertPrompt(question: string, methodology: SearchMethodology, pap
         domainScientist:
           "Infer mechanisms, methods, biological/clinical meaning, and caveats from the abstracts without overclaiming.",
         evidenceAuditor: "Keep every claim grounded in paper IDs and downgrade confidence when support is thin.",
-        narrativeStrategist: "Build a presentation arc: topic primer, why it matters, findings, implications, unresolved questions.",
+        narrativeStrategist: "Build a short teaching arc: what the topic is, the direct answer, the key findings, and what to verify.",
         slideStrategist:
-          "Turn each finding into one clear slide job. Titles should be answer-first, not labels like 'Finding 1' or 'Overview'.",
+          "Turn each finding into one clear slide job. Titles must be answer-first and teach the conclusion, not labels like 'Finding 1' or 'Overview'.",
         proofreaderEditor:
           "Remove filler, repeated phrasing, typos, empty intensifiers, and awkward syntax while preserving scientific caution.",
         finalDeckValidator:
@@ -127,9 +140,9 @@ function buildExpertPrompt(question: string, methodology: SearchMethodology, pap
           {
             id: "finding-1",
             title: "answer-first slide title, 8-14 words, not a section label",
-            takeaway: "main finding in 1-2 sentences",
-            explanation: "how the evidence supports this finding, including the biological/scientific logic",
-            whyItMatters: "why this finding matters scientifically or clinically",
+            takeaway: "direct answer in 1 sentence, written for a presenter to say aloud",
+            explanation: "how the evidence supports this finding, including biological/scientific logic or study design",
+            whyItMatters: "why this finding matters scientifically, clinically, commercially, or translationally",
             supportingDetails: [
               "2-4 concrete abstract-derived details; each should state a method, study design, result, mechanism, population/model, endpoint, or limitation"
             ],
@@ -382,7 +395,7 @@ async function callExpertModel(
   model: string
 ): Promise<ExpertResponse> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), EXPERT_SYNTHESIS_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), expertSynthesisTimeoutMs());
 
   const response = await fetch(OPENAI_RESPONSES_URL, {
     method: "POST",
@@ -418,7 +431,7 @@ async function callExpertModel(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`OpenAI expert synthesis failed (${response.status}): ${truncate(errorText, 180)}`);
+    throw new ExpertSynthesisApiError(`OpenAI expert synthesis failed (${response.status}): ${truncate(errorText, 180)}`, response.status);
   }
 
   const json = await response.json();
@@ -440,7 +453,10 @@ export async function enhanceSynthesisWithExpertAgents(
     return {
       synthesis: baseSynthesis,
       usedExpertModel: false,
-      warning: !process.env.OPENAI_API_KEY ? "Expert synthesis is not configured, so deterministic synthesis was used." : undefined
+      warning:
+        process.env.EZRESEARCH_ENABLE_EXPERT_SYNTHESIS === "true" && !process.env.OPENAI_API_KEY
+          ? "Expert synthesis is enabled but not configured, so deterministic synthesis was used."
+          : undefined
     };
   }
 
@@ -454,7 +470,12 @@ export async function enhanceSynthesisWithExpertAgents(
         break;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error("Expert synthesis failed.");
-        if (lastError.name === "AbortError") break;
+        if (
+          lastError.name === "AbortError" ||
+          (lastError instanceof ExpertSynthesisApiError && [401, 403, 404].includes(lastError.status))
+        ) {
+          break;
+        }
       }
     }
 

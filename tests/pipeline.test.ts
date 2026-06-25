@@ -132,17 +132,19 @@ describe("paper processing", () => {
     expect(synthesis.themes.length).toBeGreaterThan(0);
     expect(synthesis.topicPrimer.overview.toLowerCase()).toContain("crispr delivery");
     expect(synthesis.findings[0].takeaway).toContain("delivery");
-    expect(slides.map((slide) => slide.id)).toEqual(expect.arrayContaining(["topic-primer", "why-it-matters", "finding-1"]));
+    expect(slides.map((slide) => slide.id)).toEqual(expect.arrayContaining(["topic-primer", "finding-1", "evidence-and-limits"]));
     expect(new Set(slides.map((slide) => slide.id)).size).toBe(slides.length);
     expect(validateDeckSlides(slides, ranked)).toEqual([]);
+    expect(slides.length).toBeLessThanOrEqual(7);
+    expect(slides.map((slide) => slide.id)).not.toEqual(expect.arrayContaining(["source-map", "evidence-base", "references"]));
     expect(slides[0].bullets.join(" ")).not.toMatch(/presentation-ready|deck starts|following finding slides/i);
     expect(slides.find((slide) => slide.id === "finding-1")?.bullets.join(" ")).toMatch(/lipid|viral|editing|safety/i);
     expect(slides.every((slide) => slide.title.length > 0 && slide.bullets.length > 0 && slide.bullets.length <= 5)).toBe(true);
     expect(slides.flatMap((slide) => [slide.title, slide.subtitle, slide.footnote, ...slide.bullets]).join(" ")).not.toMatch(
       /full[- ]text analysis|more research is needed|this area is evolving/i
     );
-    expect(slides.find((slide) => slide.id === "source-map")?.bullets.length).toBeGreaterThan(0);
-    expect(slides.find((slide) => slide.id === "references")?.footnote).toContain("retrieved metadata");
+    expect(slides.find((slide) => slide.id === "evidence-and-limits")?.bullets.join(" ")).toMatch(/source|limit|abstract/i);
+    expect(slides[0].bullets.join(" ")).toMatch(/Main answer:/);
     expect(evidence[0].supportingPaperIds.length).toBeGreaterThan(1);
   });
 });
