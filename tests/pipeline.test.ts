@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { scorePaper, rankPapers } from "@/lib/scoring/paperScore";
+import { unrequestedContextDriftReason } from "@/lib/research/runResearch";
 import { dedupePapers } from "@/lib/scholarly/dedupe";
 import { filterPapers } from "@/lib/scholarly/filter";
 import { buildEvidenceTable, generateBriefMarkdown } from "@/lib/synthesis/briefGenerator";
 import { buildDeckPreviewSlides } from "@/lib/synthesis/deckPreview";
 import { validateDeckSlides } from "@/lib/synthesis/deckQuality";
+import { enhanceSynthesisWithExpertAgents } from "@/lib/synthesis/expertSynthesis";
 import { buildResearchSynthesis } from "@/lib/synthesis/researchSynthesis";
 import type { Paper, ResearchRequest, ResearchTheme, SearchMethodology } from "@/lib/types/paper";
 
@@ -56,6 +58,45 @@ describe("paper processing", () => {
 
     expect(strong.finalScore).toBeGreaterThan(weak.finalScore);
     expect(strong.explanation[0]).toContain("Relevance");
+  });
+
+  it("assigns very low relevance to papers that do not match the query topic", () => {
+    const score = scorePaper(
+      paper({
+        title: "Black hole observations in galaxy evolution",
+        abstract: "Event horizon imaging and accretion physics are studied through general relativity."
+      }),
+      "thermodynamics",
+      2021,
+      2026
+    );
+
+    expect(score.relevanceScore).toBeLessThan(35);
+    expect(score.relevancePenalty).toBeLessThan(1);
+  });
+
+  it("flags unrequested black-hole context for broad thermodynamics searches", () => {
+    const request: ResearchRequest = {
+      question: "Thermodynamics",
+      startYear: 2021,
+      endYear: 2026,
+      maxPapers: 5,
+      includePreprints: false,
+      outputType: "brief"
+    };
+
+    const reason = unrequestedContextDriftReason(
+      request,
+      paper({
+        title: "Topology of black hole thermodynamics",
+        abstract: "The study applies general relativity to black hole phase transitions."
+      })
+    );
+
+    expect(reason).toContain("black-hole");
+    expect(
+      unrequestedContextDriftReason({ ...request, question: "black hole thermodynamics" }, paper({ title: "Topology of black hole thermodynamics" }))
+    ).toBeUndefined();
   });
 
   it("builds evidence claims and a citation-grounded brief", () => {
@@ -303,5 +344,48 @@ describe("paper processing", () => {
     expect(text).not.toMatch(/CRISPR|payload into target cells|delivery method moves payload/i);
     expect(text).toMatch(/cancer|immunotherapy|immune|biomarker|patient/i);
     expect(validateDeckSlides(slides, ranked)).toEqual([]);
+  });
+
+  it("fails closed when expert synthesis is required but no OpenAI key is configured", async () => {
+    const previousEnabled = process.env.EZRESEARCH_ENABLE_EXPERT_SYNTHESIS;
+    const previousRequired = process.env.EZRESEARCH_REQUIRE_EXPERT_SYNTHESIS;
+    const previousKey = process.env.OPENAI_API_KEY;
+    try {
+      process.env.EZRESEARCH_ENABLE_EXPERT_SYNTHESIS = "true";
+      process.env.EZRESEARCH_REQUIRE_EXPERT_SYNTHESIS = "true";
+      delete process.env.OPENAI_API_KEY;
+
+      const ranked = rankPapers([paper({ id: "p1" })], "CRISPR delivery", 2021, 2026);
+      const methodology: SearchMethodology = {
+        generatedQueries: ["crispr delivery"],
+        sources: ["OpenAlex"],
+        dateRange: { startYear: 2021, endYear: 2026 },
+        includePreprints: false,
+        maxPapers: 5,
+        analysisDepth: "abstract-only",
+        notes: []
+      };
+      const synthesis = buildResearchSynthesis("CRISPR delivery", methodology, ranked);
+
+      await expect(enhanceSynthesisWithExpertAgents("CRISPR delivery", methodology, ranked, synthesis)).rejects.toThrow(
+        /Expert research synthesis is required/
+      );
+    } finally {
+      if (previousEnabled === undefined) {
+        delete process.env.EZRESEARCH_ENABLE_EXPERT_SYNTHESIS;
+      } else {
+        process.env.EZRESEARCH_ENABLE_EXPERT_SYNTHESIS = previousEnabled;
+      }
+      if (previousRequired === undefined) {
+        delete process.env.EZRESEARCH_REQUIRE_EXPERT_SYNTHESIS;
+      } else {
+        process.env.EZRESEARCH_REQUIRE_EXPERT_SYNTHESIS = previousRequired;
+      }
+      if (previousKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = previousKey;
+      }
+    }
   });
 });

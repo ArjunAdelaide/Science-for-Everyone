@@ -1,4 +1,4 @@
-import type { DataMode, Paper, ResearchRequest, ResearchResult, SearchMethodology } from "@/lib/types/paper";
+import type { DataMode, ExcludedPaper, Paper, ResearchRequest, ResearchResult, SearchMethodology } from "@/lib/types/paper";
 import { isMockFallbackEnabled } from "@/lib/research/validation";
 import { generateAcademicQueries } from "@/lib/scholarly/query";
 import { searchPubMed } from "@/lib/scholarly/pubmed";
@@ -12,6 +12,15 @@ import { buildDeckPreviewSlides } from "@/lib/synthesis/deckPreview";
 import { buildResearchSynthesis } from "@/lib/synthesis/researchSynthesis";
 import { enhanceSynthesisWithExpertAgents } from "@/lib/synthesis/expertSynthesis";
 import { mockPapers } from "@/lib/scholarly/mockPapers";
+
+const MIN_TOPIC_RELEVANCE_SCORE = 35;
+const UNREQUESTED_CONTEXT_DRIFT = [
+  {
+    label: "unrequested astrophysics/black-hole context",
+    pattern: /\b(black holes?|event horizons?|general relativity|cosmolog(?:y|ical)|gravitational waves?)\b/i,
+    allowedByQuery: /\b(black holes?|event horizons?|relativ(?:ity|istic)|cosmolog(?:y|ical)|gravitational|astrophysics?)\b/i
+  }
+] as const;
 
 export function isBiomedicalQuery(question: string): boolean {
   return /\b(bio|biomedical|medical|clinical|patient|disease|therapy|therapeutic|cancer|immunotherapy|drug|vaccine|protein|genome|gene|crispr|cas9|cell|molecular|neuro|cardio|diabetes|pathway|enzyme|virus|viral|rna|dna)\b/i.test(
@@ -76,6 +85,42 @@ function papersForFallback(request: ResearchRequest): Paper[] {
   });
 }
 
+function hasEnoughTopicalOverlap(paper: Paper): boolean {
+  return (paper.score?.relevanceScore || 0) >= MIN_TOPIC_RELEVANCE_SCORE;
+}
+
+function paperSearchText(paper: Paper): string {
+  return `${paper.title} ${paper.abstract || ""} ${paper.journal || ""}`.toLowerCase();
+}
+
+export function unrequestedContextDriftReason(request: ResearchRequest, paper: Paper): string | undefined {
+  return UNREQUESTED_CONTEXT_DRIFT.find(
+    (rule) => !rule.allowedByQuery.test(request.question) && rule.pattern.test(paperSearchText(paper))
+  )?.label;
+}
+
+function rankRelevantPapers(request: ResearchRequest, papers: Paper[]): {
+  ranked: Paper[];
+  relevanceExcluded: ExcludedPaper[];
+} {
+  const rankedCandidates = rankPapers(papers, request.question, request.startYear, request.endYear);
+  const relevanceExcluded = rankedCandidates
+    .filter((paper) => !hasEnoughTopicalOverlap(paper) || unrequestedContextDriftReason(request, paper))
+    .map((paper) => ({
+      paper,
+      reason: unrequestedContextDriftReason(request, paper)
+        ? `Excluded because it appears to be ${unrequestedContextDriftReason(request, paper)}.`
+        : `Excluded because topical overlap was too weak (${paper.score?.relevanceScore || 0}/100 relevance).`
+    }));
+
+  return {
+    ranked: rankedCandidates
+      .filter((paper) => hasEnoughTopicalOverlap(paper) && !unrequestedContextDriftReason(request, paper))
+      .slice(0, request.maxPapers),
+    relevanceExcluded
+  };
+}
+
 export async function runResearch(request: ResearchRequest): Promise<ResearchResult> {
   const generatedQueries = generateAcademicQueries(request.question).map((query) => query.query);
   const retrieval = await retrievePapers(request);
@@ -96,19 +141,25 @@ export async function runResearch(request: ResearchRequest): Promise<ResearchRes
 
   const deduped = dedupePapers(retrievedPapers);
   const filtered = filterPapers(deduped, request.includePreprints);
-  let ranked = rankPapers(filtered.included, request.question, request.startYear, request.endYear).slice(
-    0,
-    request.maxPapers
-  );
+  let { ranked, relevanceExcluded } = rankRelevantPapers(request, filtered.included);
 
-  if (ranked.length === 0 && dataMode === "live" && isMockFallbackEnabled()) {
-    const fallbackFiltered = filterPapers(papersForFallback(request), request.includePreprints);
-    ranked = rankPapers(fallbackFiltered.included, request.question, request.startYear, request.endYear).slice(
-      0,
-      request.maxPapers
+  if (ranked.length === 0 && relevanceExcluded.length > 0) {
+    dataMode = "empty";
+    warnings.push(
+      "Retrieved records were not synthesized because they had weak topical overlap with the search. Try a more specific topic or broaden the date range."
     );
-    dataMode = "mock-fallback";
-    warnings.push("Retrieved records did not pass MVP filters. Demo fallback records are shown separately as mock evidence.");
+  } else if (ranked.length === 0 && dataMode === "live" && isMockFallbackEnabled()) {
+    const fallbackFiltered = filterPapers(papersForFallback(request), request.includePreprints);
+    const fallbackRanked = rankRelevantPapers(request, fallbackFiltered.included);
+    ranked = fallbackRanked.ranked;
+    relevanceExcluded = [...relevanceExcluded, ...fallbackRanked.relevanceExcluded];
+
+    if (ranked.length > 0) {
+      dataMode = "mock-fallback";
+      warnings.push("Retrieved records did not pass MVP filters. Demo fallback records are shown separately as mock evidence.");
+    } else {
+      dataMode = "empty";
+    }
   } else if (ranked.length === 0) {
     dataMode = "empty";
   }
@@ -142,7 +193,7 @@ export async function runResearch(request: ResearchRequest): Promise<ResearchRes
     dataMode,
     methodology,
     papers: ranked,
-    excludedPapers: filtered.excluded.slice(0, 20),
+    excludedPapers: [...filtered.excluded, ...relevanceExcluded].slice(0, 20),
     synthesis,
     evidenceTable,
     briefMarkdown,

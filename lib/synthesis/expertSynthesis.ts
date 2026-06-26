@@ -27,9 +27,9 @@ type ExpertResponse = {
   nextSteps: string[];
 };
 
-const DEFAULT_MODEL = "gpt-4.1";
+const DEFAULT_MODEL = "gpt-4.1-mini";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-const DEFAULT_EXPERT_SYNTHESIS_TIMEOUT_MS = 8_000;
+const DEFAULT_EXPERT_SYNTHESIS_TIMEOUT_MS = 25_000;
 
 class ExpertSynthesisApiError extends Error {
   constructor(message: string, readonly status: number) {
@@ -40,6 +40,10 @@ class ExpertSynthesisApiError extends Error {
 
 function expertSynthesisEnabled(): boolean {
   return Boolean(process.env.OPENAI_API_KEY) && process.env.EZRESEARCH_ENABLE_EXPERT_SYNTHESIS === "true";
+}
+
+function expertSynthesisRequired(): boolean {
+  return process.env.EZRESEARCH_REQUIRE_EXPERT_SYNTHESIS === "true";
 }
 
 function modelName(): string {
@@ -55,8 +59,12 @@ function expertFallbackWarning(): string {
   return "Expert synthesis was unavailable, so EzResearch used deterministic abstract-and-metadata synthesis. Citations and claims remain grounded in retrieved records.";
 }
 
+function expertUnavailableMessage(): string {
+  return "Expert research synthesis is required but unavailable. Check OPENAI_API_KEY and try again.";
+}
+
 function candidateModels(): string[] {
-  return Array.from(new Set([modelName(), "gpt-4.1", "gpt-4.1-mini", "gpt-5"].filter(Boolean)));
+  return Array.from(new Set([modelName()].filter(Boolean)));
 }
 
 function truncate(text: string | undefined, maxLength: number): string {
@@ -67,7 +75,8 @@ function truncate(text: string | undefined, maxLength: number): string {
 function paperForPrompt(paper: Paper, index: number) {
   return {
     index: index + 1,
-    id: paper.id,
+    id: `P${index + 1}`,
+    sourceRecordId: paper.id,
     title: paper.title,
     authors: paper.authors.slice(0, 8),
     journal: paper.journal || null,
@@ -76,7 +85,7 @@ function paperForPrompt(paper: Paper, index: number) {
     publicationTypes: paper.publicationTypes,
     citationCount: paper.citationCount || null,
     likelyPeerReviewed: paper.likelyPeerReviewed || false,
-    abstract: truncate(paper.abstract, 1050),
+    abstract: truncate(paper.abstract, 650),
     score: paper.score
       ? {
           finalScore: paper.score.finalScore,
@@ -87,18 +96,20 @@ function paperForPrompt(paper: Paper, index: number) {
 }
 
 function buildExpertPrompt(question: string, methodology: SearchMethodology, papers: Paper[], baseSynthesis: ResearchSynthesis): string {
-  const promptPapers = papers.slice(0, 8).map(paperForPrompt);
+  const promptPapers = papers.slice(0, 3).map(paperForPrompt);
 
   return JSON.stringify(
     {
-      task:
-        "Act as a faculty-level biomedical/life-sciences research intelligence team. Produce a polished, citation-auditable briefing for an academic medical audience.",
+      task: "Act as a scholarly research intelligence team. Produce a short, citation-auditable teaching report from the supplied records.",
       nonNegotiables: [
         "Use only the supplied paper records. Do not invent citations, journals, authors, DOIs, statistics, effect sizes, clinical claims, or findings.",
         "Every finding must cite supportingPaperIds that exist in the supplied papers.",
         "The output must directly answer the user's question or keyword search. Do not hide behind methodology language.",
-        "The deck should be short and information-dense: teach mechanisms, methods, implications, and caveats in plain language.",
-        "Write like a senior biomedical analyst preparing a five-minute teaching briefing: precise, direct, explanatory, and useful aloud.",
+        "Use the short paper IDs supplied as P1, P2, and P3 in supportingPaperIds.",
+        "The report should be short and information-dense: teach mechanisms, methods, implications, and caveats in plain language.",
+        "Keep the full JSON response under 800 words. Prefer short sentences over exhaustive prose.",
+        "Return exactly 2 findings. Do not include extra sections beyond the requested JSON keys.",
+        "Write like a senior research analyst preparing a three-minute teaching briefing: precise, direct, explanatory, and useful aloud.",
         "Clearly preserve abstract-only limitations. If full-text methods/results are needed, say so.",
         "Prefer mechanistic explanation and study design interpretation over generic validity language.",
         "Avoid empty phrases such as 'more research is needed', 'rapidly evolving', or 'promising' unless you state exactly what source-backed detail makes that true.",
@@ -129,143 +140,34 @@ function buildExpertPrompt(question: string, methodology: SearchMethodology, pap
       requiredOutputShape: {
         topicPrimer: {
           topic: "short topic label",
-          overview: "120-180 word plain-language primer grounded in abstracts",
-          whyItMatters: "80-140 word explanation of scientific/clinical importance",
+          overview: "40-70 word plain-language primer grounded in abstracts",
+          whyItMatters: "25-50 word explanation of scientific, clinical, technical, or societal importance",
           currentFocus: ["3-5 concrete focus areas in the retrieved literature"],
           keyTerms: ["6-10 important terms from the records"]
         },
-        executiveAnswer: "120-180 word answer-first synthesis with caveats",
-        keyTakeaways: ["3-5 presenter-ready takeaways"],
+        executiveAnswer: "50-90 word answer-first synthesis with caveats",
+        keyTakeaways: ["exactly 3 presenter-ready takeaways"],
         findings: [
           {
             id: "finding-1",
             title: "answer-first slide title, 8-14 words, not a section label",
-            takeaway: "direct answer in 1 sentence, written for a presenter to say aloud",
-            explanation: "how the evidence supports this finding, including biological/scientific logic or study design",
-            whyItMatters: "why this finding matters scientifically, clinically, commercially, or translationally",
+            takeaway: "direct answer in 1 short sentence, written for a presenter to say aloud",
+            explanation: "1-2 sentence explanation of how the supplied evidence supports this finding",
+            whyItMatters: "1 sentence explaining why this finding matters",
             supportingDetails: [
-              "2-4 concrete abstract-derived details; each should state a method, study design, result, mechanism, population/model, endpoint, or limitation"
+              "exactly 2 concrete abstract-derived details; each should state a method, study design, result, mechanism, population/model, endpoint, or limitation"
             ],
-            supportingPaperIds: ["paper ids only from supplied papers"],
+            supportingPaperIds: ["short paper ids only: P1, P2, or P3"],
             evidenceLevel: "Emerging | Moderate | Strong",
             limitations: ["specific limitation or validation need"]
           }
-        ],
-        paperInsights: [
-          {
-            paperId: "paper id only from supplied papers",
-            roleInLiterature: "why this paper matters in the evidence base",
-            studyDesignOrApproach: "abstract-derived design/approach/method",
-            mainResult: "abstract-derived main result",
-            mechanismOrExplanation: "mechanism or explanation if stated or clearly implied by abstract",
-            limitations: "abstract-only/full-text caveat",
-            presentableTakeaway: "how a presenter should use this paper"
-          }
-        ],
-        areasOfAgreement: ["2-4 cross-paper agreement points"],
-        uncertainties: ["3-5 unresolved questions/disagreements"],
-        researchGaps: ["3-5 gaps a full review should investigate"],
-        nextSteps: ["3-5 practical validation steps"]
+        ]
       }
     },
     null,
     2
   );
 }
-
-const responseSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: [
-    "topicPrimer",
-    "executiveAnswer",
-    "keyTakeaways",
-    "findings",
-    "paperInsights",
-    "areasOfAgreement",
-    "uncertainties",
-    "researchGaps",
-    "nextSteps"
-  ],
-  properties: {
-    topicPrimer: {
-      type: "object",
-      additionalProperties: false,
-      required: ["topic", "overview", "whyItMatters", "currentFocus", "keyTerms"],
-      properties: {
-        topic: { type: "string" },
-        overview: { type: "string" },
-        whyItMatters: { type: "string" },
-        currentFocus: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 6 },
-        keyTerms: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 12 }
-      }
-    },
-    executiveAnswer: { type: "string" },
-    keyTakeaways: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6 },
-    findings: {
-      type: "array",
-      minItems: 3,
-      maxItems: 6,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: [
-          "id",
-          "title",
-          "takeaway",
-          "explanation",
-          "whyItMatters",
-          "supportingDetails",
-          "supportingPaperIds",
-          "evidenceLevel",
-          "limitations"
-        ],
-        properties: {
-          id: { type: "string" },
-          title: { type: "string" },
-          takeaway: { type: "string" },
-          explanation: { type: "string" },
-          whyItMatters: { type: "string" },
-          supportingDetails: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 5 },
-          supportingPaperIds: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 6 },
-          evidenceLevel: { type: "string", enum: ["Emerging", "Moderate", "Strong"] },
-          limitations: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 4 }
-        }
-      }
-    },
-    paperInsights: {
-      type: "array",
-      minItems: 1,
-      maxItems: 12,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: [
-          "paperId",
-          "roleInLiterature",
-          "studyDesignOrApproach",
-          "mainResult",
-          "mechanismOrExplanation",
-          "limitations",
-          "presentableTakeaway"
-        ],
-        properties: {
-          paperId: { type: "string" },
-          roleInLiterature: { type: "string" },
-          studyDesignOrApproach: { type: "string" },
-          mainResult: { type: "string" },
-          mechanismOrExplanation: { type: "string" },
-          limitations: { type: "string" },
-          presentableTakeaway: { type: "string" }
-        }
-      }
-    },
-    areasOfAgreement: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 5 },
-    uncertainties: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6 },
-    researchGaps: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6 },
-    nextSteps: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6 }
-  }
-} as const;
 
 function extractResponseText(value: unknown): string {
   if (!value || typeof value !== "object") return "";
@@ -278,6 +180,17 @@ function extractResponseText(value: unknown): string {
       .map((content) => (typeof content.text === "string" ? content.text : ""))
       .join("") || ""
   );
+}
+
+function parseExpertJson(text: string): ExpertResponse {
+  const trimmed = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+
+  try {
+    return JSON.parse(trimmed) as ExpertResponse;
+  } catch {
+    const withoutControlCharacters = trimmed.replace(/[\u0000-\u001f\u007f]/g, " ");
+    return JSON.parse(withoutControlCharacters) as ExpertResponse;
+  }
 }
 
 function asString(value: unknown, fallback = ""): string {
@@ -304,14 +217,29 @@ function sanitizeTopicPrimer(value: unknown, fallback: TopicPrimer): TopicPrimer
   };
 }
 
-function sanitizePaperInsights(value: unknown, paperIds: Set<string>, fallback: PaperInsight[]): PaperInsight[] {
+function normalizePaperId(id: string, paperIds: Set<string>, promptIdToPaperId: Map<string, string>): string | undefined {
+  if (paperIds.has(id)) return id;
+  return promptIdToPaperId.get(id.toUpperCase());
+}
+
+function sanitizePaperInsights(
+  value: unknown,
+  paperIds: Set<string>,
+  promptIdToPaperId: Map<string, string>,
+  fallback: PaperInsight[]
+): PaperInsight[] {
   if (!Array.isArray(value)) return fallback;
 
   const insights = value
     .map((item) => (item && typeof item === "object" ? (item as Partial<PaperInsight>) : null))
-    .filter((item): item is Partial<PaperInsight> => Boolean(item && typeof item.paperId === "string" && paperIds.has(item.paperId)))
+    .map((item) => {
+      if (!item || typeof item.paperId !== "string") return null;
+      const paperId = normalizePaperId(item.paperId, paperIds, promptIdToPaperId);
+      return paperId ? { ...item, paperId } : null;
+    })
+    .filter((item): item is Partial<PaperInsight> & { paperId: string } => Boolean(item))
     .map((item) => ({
-      paperId: item.paperId || "",
+      paperId: item.paperId,
       roleInLiterature: asString(item.roleInLiterature, "Role not specified by expert synthesis."),
       studyDesignOrApproach: asString(item.studyDesignOrApproach, "Approach not available from abstract metadata."),
       mainResult: asString(item.mainResult, "Main result not available from abstract metadata."),
@@ -323,14 +251,22 @@ function sanitizePaperInsights(value: unknown, paperIds: Set<string>, fallback: 
   return insights.length ? insights : fallback;
 }
 
-function sanitizeFindings(value: unknown, paperIds: Set<string>, fallback: ResearchFinding[]): ResearchFinding[] {
+function sanitizeFindings(
+  value: unknown,
+  paperIds: Set<string>,
+  promptIdToPaperId: Map<string, string>,
+  fallback: ResearchFinding[]
+): ResearchFinding[] {
   if (!Array.isArray(value)) return fallback;
 
   const findings = value
     .map((item, index) => (item && typeof item === "object" ? ({ ...(item as Partial<ResearchFinding>), index }) : null))
     .filter(Boolean)
     .map((item) => {
-      const supportingPaperIds = asStringArray(item?.supportingPaperIds).filter((id) => paperIds.has(id)).slice(0, 6);
+      const supportingPaperIds = asStringArray(item?.supportingPaperIds)
+        .map((id) => normalizePaperId(id, paperIds, promptIdToPaperId))
+        .filter((id): id is string => Boolean(id))
+        .slice(0, 6);
       if (supportingPaperIds.length === 0) return null;
       const evidenceLevel = item?.evidenceLevel === "Strong" || item?.evidenceLevel === "Moderate" ? item.evidenceLevel : "Emerging";
 
@@ -369,8 +305,9 @@ function themesFromFindings(findings: ResearchFinding[], fallback: ResearchTheme
 
 function sanitizeExpertResponse(parsed: ExpertResponse, baseSynthesis: ResearchSynthesis, papers: Paper[]): ResearchSynthesis {
   const paperIds = new Set(papers.map((paper) => paper.id));
-  const findings = sanitizeFindings(parsed.findings, paperIds, baseSynthesis.findings);
-  const paperInsights = sanitizePaperInsights(parsed.paperInsights, paperIds, baseSynthesis.paperInsights || []);
+  const promptIdToPaperId = new Map(papers.map((paper, index) => [`P${index + 1}`, paper.id]));
+  const findings = sanitizeFindings(parsed.findings, paperIds, promptIdToPaperId, baseSynthesis.findings);
+  const paperInsights = sanitizePaperInsights(parsed.paperInsights, paperIds, promptIdToPaperId, baseSynthesis.paperInsights || []);
 
   return {
     topicPrimer: sanitizeTopicPrimer(parsed.topicPrimer, baseSynthesis.topicPrimer),
@@ -410,20 +347,17 @@ async function callExpertModel(
         {
           role: "system",
           content:
-            "You are EzResearch's expert academic research swarm. You produce only source-grounded, citation-auditable, presentation-ready scholarly synthesis."
+            "You are EzResearch's expert academic research swarm. Return valid JSON only. Use only supplied paper IDs and never invent citations."
         },
         {
           role: "user",
           content: buildExpertPrompt(question, methodology, papers, baseSynthesis)
         }
       ],
-      max_output_tokens: 3200,
+      max_output_tokens: 1300,
       text: {
         format: {
-          type: "json_schema",
-          name: "ezresearch_expert_synthesis",
-          schema: responseSchema,
-          strict: true
+          type: "json_object"
         }
       }
     })
@@ -440,7 +374,7 @@ async function callExpertModel(
     throw new Error("OpenAI expert synthesis returned no parseable text.");
   }
 
-  return JSON.parse(text) as ExpertResponse;
+  return parseExpertJson(text);
 }
 
 export async function enhanceSynthesisWithExpertAgents(
@@ -450,6 +384,10 @@ export async function enhanceSynthesisWithExpertAgents(
   baseSynthesis: ResearchSynthesis
 ): Promise<ExpertSynthesisResult> {
   if (!expertSynthesisEnabled() || papers.length === 0) {
+    if (expertSynthesisRequired() && papers.length > 0) {
+      throw new Error(expertUnavailableMessage());
+    }
+
     return {
       synthesis: baseSynthesis,
       usedExpertModel: false,
@@ -488,6 +426,18 @@ export async function enhanceSynthesisWithExpertAgents(
       usedExpertModel: true
     };
   } catch (error) {
+    if (expertSynthesisRequired()) {
+      if (error instanceof ExpertSynthesisApiError && [401, 403].includes(error.status)) {
+        throw new Error("Expert research synthesis failed because the OpenAI API key was rejected. Create or configure a valid OPENAI_API_KEY.");
+      }
+
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("Expert research synthesis timed out. Increase OPENAI_EXPERT_TIMEOUT_MS or try a smaller paper set.");
+      }
+
+      throw new Error(error instanceof Error ? error.message : expertUnavailableMessage());
+    }
+
     return {
       synthesis: baseSynthesis,
       usedExpertModel: false,
