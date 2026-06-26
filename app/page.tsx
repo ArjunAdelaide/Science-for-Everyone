@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { LandingHero } from "@/components/research/LandingHero";
 import { LoadingState } from "@/components/research/LoadingState";
 import { ResearchReport } from "@/components/research/ResearchReport";
-import type { ResearchFormState } from "@/components/research/types";
+import type { DeckDownload, ResearchFormState } from "@/components/research/types";
 import type { ResearchResult } from "@/lib/types/paper";
 
 const defaultForm: ResearchFormState = {
@@ -21,12 +21,16 @@ export default function Home() {
   const [result, setResult] = useState<ResearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deckDownload, setDeckDownload] = useState<DeckDownload | null>(null);
+  const [downloadingDeck, setDownloadingDeck] = useState(false);
 
   function startNewSearch() {
     setForm(defaultForm);
     setError(null);
     setLoading(false);
     setResult(null);
+    setDeckDownload(null);
+    setDownloadingDeck(false);
   }
 
   async function runResearch(event: FormEvent<HTMLFormElement>) {
@@ -52,10 +56,40 @@ export default function Home() {
       }
 
       setResult(payload as ResearchResult);
+      setDeckDownload(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Research request failed.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function downloadDeck() {
+    if (!result) return;
+
+    setDownloadingDeck(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/research/deck?delivery=link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ result })
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Deck generation failed.");
+      }
+
+      setDeckDownload({
+        fileName: payload.fileName || "ezresearch-deck.pptx",
+        url: payload.downloadUrl
+      });
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Deck generation failed.");
+    } finally {
+      setDownloadingDeck(false);
     }
   }
 
@@ -67,7 +101,14 @@ export default function Home() {
       {loading ? (
         <LoadingState />
       ) : (
-        <ResearchReport error={error} onNewSearch={startNewSearch} result={result} />
+        <ResearchReport
+          deckDownload={deckDownload}
+          downloadingDeck={downloadingDeck}
+          error={error}
+          onDownloadDeck={downloadDeck}
+          onNewSearch={startNewSearch}
+          result={result}
+        />
       )}
     </main>
     )

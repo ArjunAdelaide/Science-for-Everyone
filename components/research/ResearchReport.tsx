@@ -1,9 +1,13 @@
 "use client";
 
-import type { EvidenceClaim, Paper, ResearchFinding, ResearchResult } from "@/lib/types/paper";
+import type { DeckDownload } from "@/components/research/types";
+import type { DeckPreviewSlide, EvidenceClaim, Paper, ResearchFinding, ResearchResult } from "@/lib/types/paper";
 
 type ResearchReportProps = {
+  deckDownload: DeckDownload | null;
+  downloadingDeck: boolean;
   error: string | null;
+  onDownloadDeck: () => void;
   onNewSearch: () => void;
   result: ResearchResult;
 };
@@ -102,7 +106,25 @@ function SourceCard({ paper, index }: { paper: Paper; index: number }) {
   );
 }
 
-export function ResearchReport({ error, onNewSearch, result }: ResearchReportProps) {
+function SlidePreviewCard({ slide, index }: { slide: DeckPreviewSlide; index: number }) {
+  return (
+    <article className="border border-stone-300 bg-[#fbfaf6] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-signal">{slide.eyebrow}</p>
+        <span className="text-xs font-semibold text-stone-400">{String(index + 1).padStart(2, "0")}</span>
+      </div>
+      <h3 className="mt-3 text-lg font-semibold leading-tight text-ink">{slide.title}</h3>
+      {slide.subtitle ? <p className="mt-2 text-sm leading-5 text-stone-600">{slide.subtitle}</p> : null}
+      <ul className="mt-4 grid gap-2 text-sm leading-6 text-stone-700">
+        {slide.bullets.slice(0, 3).map((bullet) => (
+          <li key={bullet}>- {bullet}</li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
+export function ResearchReport({ deckDownload, downloadingDeck, error, onDownloadDeck, onNewSearch, result }: ResearchReportProps) {
   const warning = error || result.warnings[0];
   const primer = result.synthesis.topicPrimer;
   const dateRange = `${result.methodology.dateRange.startYear}-${result.methodology.dateRange.endYear}`;
@@ -176,6 +198,41 @@ export function ResearchReport({ error, onNewSearch, result }: ResearchReportPro
                 ) : (
                   <p className="border-t border-stone-300 py-5 text-sm text-stone-600">No evidence claims were generated.</p>
                 )}
+              </div>
+            </section>
+
+            <section className="pt-8">
+              <div className="flex flex-wrap items-end justify-between gap-4 border-t border-stone-300 pt-8">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Presentation Deck</p>
+                  <h2 className="mt-3 text-2xl font-semibold text-ink">A short deck is generated from the same evidence base</h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600">
+                    The deck is intentionally compact: a title slide, topic primer, key teaching points, and evidence limits.
+                  </p>
+                </div>
+                {deckDownload ? (
+                  <a
+                    className="inline-flex h-10 items-center border border-ink bg-ink px-4 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-signal"
+                    download={deckDownload.fileName}
+                    href={deckDownload.url}
+                  >
+                    PPTX ready
+                  </a>
+                ) : (
+                  <button
+                    className="inline-flex h-10 items-center border border-ink bg-ink px-4 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-signal disabled:cursor-wait disabled:border-stone-500 disabled:bg-stone-500"
+                    disabled={downloadingDeck || result.deckSlides.length === 0}
+                    onClick={onDownloadDeck}
+                    type="button"
+                  >
+                    {downloadingDeck ? "Building deck" : "Download PPTX"}
+                  </button>
+                )}
+              </div>
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                {result.deckSlides.slice(0, 4).map((slide, index) => (
+                  <SlidePreviewCard index={index} key={slide.id} slide={slide} />
+                ))}
               </div>
             </section>
 
